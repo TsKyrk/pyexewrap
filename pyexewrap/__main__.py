@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 # Main function of the pyexewrap package
 def main():
@@ -24,7 +25,8 @@ def main():
             exec(script_code, globals(), locals())
 
         except Exception as e:
-            print(f"Error executing {script_to_execute}: {e}")
+            print(f"Error executing {script_to_execute}: {type(e).__name__}")
+            print(traceback.format_exc())
             print("This exception has ended the script before the end.")
 
     if pyexewrap_verbose: print("pyexewrap ended.")
