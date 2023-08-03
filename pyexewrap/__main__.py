@@ -21,8 +21,14 @@ def main():
             with open(script_to_execute, 'r') as f:
                 script_code = f.read()
 
+            #This global variable can be changed by the executed scripts
+            global pyexewrap_mustpause_in_console
+            pyexewrap_mustpause_in_console = True
+
             # Execute the script code within the current context
-            exec(script_code, globals(), locals())
+            exec(script_code)
+
+            if pyexewrap_verbose: print("pyexewrap_mustpause_in_console="+str(pyexewrap_mustpause_in_console))
 
         except Exception as e:
             print(f"Error executing {script_to_execute}: {type(e).__name__}")
@@ -32,7 +38,7 @@ def main():
     if pyexewrap_verbose: print("pyexewrap ended.")
 
     # The windows environment variable PROMPT only exists when there is an active console
-    if not 'PROMPT' in os.environ:
+    if (not 'PROMPT' in os.environ) and pyexewrap_mustpause_in_console:
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
         wait = input("Press Enter to continue.")
 
