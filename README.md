@@ -19,8 +19,8 @@ or a cmd command (not recommended unless you know what you are doing. **I dont..
 setx /M PYTHONPATH "%PYTHONPATH%;C:\your\path\here\pyexewrap"
 ```
 
-# Double-click usage
-Using shebang on the first line of all your new scripts (the main purpose of this tool):
+# Double-click usage (the main purpose of this tool)
+Using shebang on the first line of all your new scripts:
 ```commandline
 #!/usr/bin/env/ python -m pyexewrap
 ```
