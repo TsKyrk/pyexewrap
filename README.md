@@ -38,7 +38,14 @@ It appears that you may not have py.exe installed if your Python has been instal
 Contrary to python.exe, py.exe has the ability to read shebang lines with "virtual commands".
 More info here: https://python.readthedocs.io/en/latest/using/windows.html#shebang-lines
 
-Then the file (the "enhanced script") can be double-clicked. See the provided example scripts for a better understanding.
+Then the file (the "enhanced script") can be double-clicked. It will have the specified behaviour.
+See the provided example scripts for a better understanding.
+
+Option : The enhanced script can also be setup to only stop in case of exception and flash the console otherwise.
+This is done by setting a global variable that will be checked at the wrapper level. Just add this line at the end of the script:
+```commandline
+globals()['pyexewrap_mustpause_in_console'] = False
+```
 
 # CLI (command line interface) usage
 This has no added value at the moment (unless you modify the wrapper to inject other features than the pausing message):
