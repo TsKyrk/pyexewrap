@@ -26,7 +26,8 @@ def main():
             pyexewrap_mustpause_in_console = True
 
             # Execute the script code within the current context
-            exec(script_code)
+            # note that globals are also binded to exec's locals. This is mandatory : see the unitary test E001.
+            exec(script_code, globals(), globals())
 
             if pyexewrap_verbose: print("pyexewrap_mustpause_in_console="+str(pyexewrap_mustpause_in_console))
 
