@@ -41,7 +41,18 @@ def main():
     # The windows environment variable PROMPT only exists when there is an active console
     if (not 'PROMPT' in os.environ) and pyexewrap_mustpause_in_console:
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
-        wait = input("Press Enter to continue.")
+        while True:
+            wait = input("Press Enter to continue and End. Or c+Enter for cmd. Or i+Enter for ipython. ")
+            if wait == "c":
+                print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
+                os.system("cmd /k")
+                print("\n")
+            elif wait == "i":
+                print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
+                os.system("python")
+                print("\n")
+            else:
+                sys.exit()
 
 if __name__ == "__main__":
     main()
