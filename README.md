@@ -7,8 +7,12 @@ Yet if an exception occurs, which is common in development phase, the console wi
 Moreover, if the same script is run from the command line interface or is called by another script, the blocking line becomes undesirable.
 
 Pyexewrap is a python script that, once setup on the OS, will wrap all the other python scripts enhanced with the proper shebang line.
-On the enhanced scripts, the pausing message "Press Enter to continue." will show up only if the script is directly double-clicked, not when it is called or launched through CLI.
-The pausing message will still appear if an exception occurs before the end.
+On the enhanced scripts, the pausing message "Press <Enter> to continue." will automatically show up but only if the script is directly double-clicked, not when it is called or launched through CLI.
+Most importantly, the pausing message will appear even if an exception occurs before the last line of code which will enable a quick debugging of the exception.
+
+Another useful feature is to be able to launch an interactive python console at the end of the script by pressing i+<Enter> once prompted. This python console will keep all the local variables of the script that has just run allowing for deeper debugging of the scripts.
+
+The last feature is to be able to launch a cmd console at the end of the script by pressing c+<Enter> once prompted.
 
 # Installation
 The path to this package shall be added to your PYTHONPATH environment variable to be visible from any location.
@@ -48,7 +52,7 @@ globals()['pyexewrap_mustpause_in_console'] = False
 ```
 
 # CLI (command line interface) usage
-This has no added value at the moment (unless you modify the wrapper to inject other features than the pausing message):
+This has no added value at the moment (unless you modify the wrapper to inject other features than the automatic pausing message at the end of the script):
 ```commandline
 python -m pyexewrap <myscript.py>
 ```
@@ -56,7 +60,7 @@ python -m pyexewrap <myscript.py>
 # Todo / Side effect
 1) Since the script is run from the location of pyexewrap, any scripts using paths relative to the current script location will fail. There should be a way to improve this.
 
-2) Since the script to be wrapped is read then executed by pyexewrap.__main__.main() the exceptions occuring at the top level of the script won't be displayed exactly like they would have been otherwise.
+2) Since the script to be wrapped is read then executed by pyexewrap.__main__.main() the exceptions occuring at the top level of the script won't be displayed exactly like they would have been otherwise. For example the errors will be reported as coming fom file "<string>", line N instead of providing the script name.
  tips here for an improvement: https://stackoverflow.com/questions/47183305/file-string-traceback-with-line-preview
 
 # Contributions
