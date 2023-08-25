@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+import code
 
 # Main function of the pyexewrap package
 def main():
@@ -42,14 +43,15 @@ def main():
     if (not 'PROMPT' in os.environ) and pyexewrap_mustpause_in_console:
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
         while True:
-            wait = input("Press Enter to continue and End. Or c+Enter for cmd. Or i+Enter for ipython. ")
-            if wait == "c":
+            wait = input("Press <Enter> to continue and quit. (c+<Enter> for cmd console.) (i+<Enter> for interactive python console.)\n")
+            if wait.lower() == "c":
                 print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
                 os.system("cmd /k")
                 print("\n")
-            elif wait == "i":
+            elif wait.lower() == "i":
                 print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
-                os.system("python")
+                #os.system("python")
+                code.interact(local=globals())
                 print("\n")
             else:
                 sys.exit()
