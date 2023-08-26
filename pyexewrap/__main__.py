@@ -46,12 +46,22 @@ def main():
             wait = input("Press <Enter> to continue and quit. (c+<Enter> for cmd console.) (i+<Enter> for interactive python console.)\n")
             if wait.lower() == "c":
                 print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
-                os.system("cmd /k")
+                try:
+                    os.system("cmd /k")
+                except KeyboardInterrupt:
+                    # For some reason Ctrl+C used in cmd console are raised again after returning. So we just pass it.
+                    pass
+                except BaseException as e:
+                    # Just in case there are other exceptions to catch
+                    print(traceback.format_exc())
                 print("\n")
             elif wait.lower() == "i":
                 print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
                 #os.system("python")
-                code.interact(local=globals())
+                try:
+                    code.interact(local=globals())
+                except BaseException as e:
+                    print(traceback.format_exc())
                 print("\n")
             else:
                 sys.exit()
