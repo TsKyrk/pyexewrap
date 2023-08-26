@@ -60,9 +60,6 @@ python -m pyexewrap <myscript.py>
 # Todo / Side effect
 1) Since the script is run from the location of pyexewrap, any scripts using paths relative to the current script location will fail. There should be a way to improve this.
 
-2) Since the script to be wrapped is read then executed by pyexewrap.__main__.main() the exceptions occuring at the top level of the script won't be displayed exactly like they would have been otherwise. For example the errors will be reported as coming fom file "<string>", line N instead of providing the script name.
- tips here for an improvement: https://stackoverflow.com/questions/47183305/file-string-traceback-with-line-preview
-
 # Contributions
 I am a newbie to python. Your contributions would be greatly appreciated. Feel free to copy the project.
 
