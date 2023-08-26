@@ -58,7 +58,7 @@ python -m pyexewrap <myscript.py>
 ```
 
 # Todo / Side effect
-1) Since the script is run from the location of pyexewrap, any scripts using paths relative to the current script location will fail. There should be a way to improve this.
+None to my knowledge. All the knwon side effects have been fixed.
 
 # Contributions
 I am a newbie to python. Your contributions would be greatly appreciated. Feel free to copy the project.
