@@ -27,6 +27,7 @@ def showtraceback():
 def main():
     # pyexewrap_verbose = True # Uncomment to debug with verbose mode
     if not 'pyexewrap_verbose' in locals(): pyexewrap_verbose = False
+    if not 'pyexewrap_must_change_title' in locals(): pyexewrap_must_change_title = True
     
     if pyexewrap_verbose: print("pyexewrap activated.")
 
@@ -38,6 +39,12 @@ def main():
             if pyexewrap_verbose: print("CLI is " + " ".join(sys.argv))
             
             script_to_execute = sys.argv[1]
+            
+            # The windows environment variable PROMPT only exists when there is an active console
+            # if not run in console (but with py.exe through double-click) the window title will be explicit
+            if (not 'PROMPT' in os.environ) and pyexewrap_must_change_title:
+                os.system("title " + os.path.basename(script_to_execute) + " -- pyexewrap " + script_to_execute)
+            
             with open(script_to_execute, 'r') as f: script_code = f.read()
 
             # This global variable can be changed by the executed scripts
