@@ -5,24 +5,22 @@ import code
 
 # Main function of the pyexewrap package
 def main():
-    if not 'pyexewrap_verbose' in locals():
-        pyexewrap_verbose = False
+    # pyexewrap_verbose = True # Uncomment to debug with verbose mode
+    if not 'pyexewrap_verbose' in locals(): pyexewrap_verbose = False
     
     if pyexewrap_verbose: print("pyexewrap activated.")
 
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2: 
         print("Usage: python wrap.py <script.py>")
-
     else:
         try:
-            if pyexewrap_verbose: print("interpreter is "+sys.executable)
-            if pyexewrap_verbose: print("CLI is "+" ".join(sys.argv))
+            if pyexewrap_verbose: print("interpreter is " + sys.executable)
+            if pyexewrap_verbose: print("CLI is " + " ".join(sys.argv))
             
             script_to_execute = sys.argv[1]
-            with open(script_to_execute, 'r') as f:
-                script_code = f.read()
+            with open(script_to_execute, 'r') as f: script_code = f.read()
 
-            #This global variable can be changed by the executed scripts
+            # This global variable can be changed by the executed scripts
             global pyexewrap_mustpause_in_console
             pyexewrap_mustpause_in_console = True
 
