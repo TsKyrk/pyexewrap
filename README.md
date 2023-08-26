@@ -1,18 +1,21 @@
 # What is pyexewrap ?
-When a .py file is double-clicked in the Windows file explorer, the script will pop a console that will most likely flash at the user's screen unless the last line of code has some blocking command like 
+pyexewrap is a tool for those who don't want to run scripts typing command line in a console but through double-clicks in the Windows file explorer.
+Usually, when a .py file is double-clicked, the script will pop a console that will most likely flash away from the user's screen unless the last line of code has some blocking command like 
 ```commandline
 input("Press ENTER to continue")
 ```
-Yet if an exception occurs, which is common in development phase, the console will flash anyway.
-Moreover, if the same script is run from the command line interface or is called by another script, the blocking line becomes undesirable.
+Even then, if an exception occurs, which is common in development phase, the console will still flash away.
+Moreover, if the same script is run from the command line interface or is called by another script, this additional blocking line becomes undesirable.
 
-Pyexewrap is a python script that, once setup on the OS, will wrap all the other python scripts enhanced with the proper shebang line.
+Pyexewrap is a tool that can be used to enhance (wrap) other python scripts just by adding the proper shebang line on their first line.
 On the enhanced scripts, the pausing message "Press <Enter> to continue." will automatically show up but only if the script is directly double-clicked, not when it is called or launched through CLI.
 Most importantly, the pausing message will appear even if an exception occurs before the last line of code which will enable a quick debugging of the exception.
 
-Another useful feature is to be able to launch an interactive python console at the end of the script by pressing i+<Enter> once prompted. This python console will keep all the local variables of the script that has just run allowing for deeper debugging of the scripts.
+Bonus feature #1: it is possible to launch an interactive python console at the end of the script by pressing i+<Enter> once prompted. This python console will keep all the local variables of the script that has just run. This is useful for instance to debug the script interactively by digging into variables.
 
-The last feature is to be able to launch a cmd console at the end of the script by pressing c+<Enter> once prompted.
+Bonus feature #2: it is possible to launch a cmd console at the end of the script by pressing c+<Enter> once prompted. This is useful for instance to lauch a proper "pip install xxx" command as a result of a "module not found" exception.
+
+Bonus feature #3: for double-clicked scripts the usual title "py.exe" is replaced with a more explicit one showing the script name being run. This is usefull to distinguish the various script windows that are running simultaneously.
 
 # Installation
 The path to this package shall be added to your PYTHONPATH environment variable to be visible from any location.
