@@ -1,19 +1,24 @@
 # What is pyexewrap ?
 pyexewrap is a tool for those who don't want to run scripts typing command lines in a console but through double-clicks in the Windows file explorer.
 
-**The problem to solve:** Usually, when a .py file is double-clicked, the script will pop a console that will most likely flash away from the user's screen unless the last line of code has some blocking command like 
+**Python's native problems for Windows users** 
+- When a .py file is double-clicked, the script will pop a console that will most likely flash away from the user's screen unless the last line of code has some blocking command like 
 ```commandline
 input("Press ENTER to continue")
 ```
-Even then, if an exception occurs, which is common in development phase (think of syntax errors for example), the console will still flash away forcing you to switch to console mode to read the traceback.
+- Even then, if an exception occurs, which is common in development phase - think of syntax errors for example - the console will still flash away forcing you to switch to console mode to read the traceback.
 
-Moreover, if the same script is run from the command line interface or is called by another script (python or batch), this additional blocking line usually becomes undesirable.
+- If the same script is run from the command line interface or is called by another script (python or batch), this additional blocking line usually becomes undesirable.
+
+- When a python scripts uses .pyw extension, there is no chance to read the traceback easily.
 
 **Main feature #1:** Pyexewrap is a tool that can be used to enhance (wrap) other python scripts just by adding the proper shebang line on their first line.
 
-On these enhanced scripts, the pausing message "Press <Enter> to continue." will automatically show up but only if the script is directly double-clicked, not when it is called or launched through CLI. 
+On these enhanced scripts, a pausing message "Press <Enter> to continue." will automatically show up but only if the script is directly double-clicked, not when it is called or launched through CLI. 
 
 **Main feature #2:** Most importantly, the pausing message will appear even if an exception occurs before the last line of code which will enable a quick debugging of the exceptions without needing to re-run scripts from a console to read the lost useful messages.
+
+**Main feature #3:** For .pyw scripts in case of uncaught exception that crashes the execution, the console will be displayed so that the user can see the usefull traceback.
 
 **Bonus feature #1:** the pausing message enables launching an interactive python console at the end of the script by pressing i+\<Enter\> once prompted. This python console will keep all the local variables of the script that has just run. This is useful for instance to debug the script interactively by digging into variables.
 
@@ -80,7 +85,6 @@ but this has no added value at the moment (unless you modify the tool yourself t
 None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find.
 
 # Todos
-- Manage .pyw extensions and their annoying behavior with exceptions
 - Implement an installer for an easy deployment of the tool. Maybe add the tool to Pypi?
 - Automate unit tests (no added value at the moment imo)
 - Add a version number (no added value at the moment imo)
