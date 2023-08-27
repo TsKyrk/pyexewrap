@@ -3,4 +3,4 @@
 print("hello world")
 
 #Don't pause this script in console (unless there is an exception) :
-globals()['pyexewrap_mustpause_in_console'] = False
+globals()['pyexewrap_must_pause_in_console'] = False
