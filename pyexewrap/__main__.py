@@ -90,8 +90,8 @@ def main():
 
             # Execute the script code within the current context
             # note that globals are also binded to exec's locals. This is mandatory : see the unitary test E001.
-            code = compile(script_code, script_to_execute, "exec")
-            exec(code, globals(), globals())
+            compiled_code = compile(script_code, script_to_execute, "exec")
+            exec(compiled_code, globals(), globals())
 
             if pyexewrap_verbose: print("pyexewrap_must_pause_in_console="+str(pyexewrap_must_pause_in_console))
 
