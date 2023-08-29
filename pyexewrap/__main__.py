@@ -66,20 +66,21 @@ def main():
     else:
         script_to_execute = sys.argv[1]
         script_extension = os.path.splitext(script_to_execute)[1]
+        script_is_doubleclicked = ('PROMPT' not in os.environ) or ('pyexewrap_simulate_doubleclick' in os.environ)
 
         try:
             if pyexewrap_verbose: 
                 print("interpreter is " + sys.executable)
                 print("CLI is " + " ".join(sys.argv))
                 print("script extension is " + script_extension)
+                print("script_is_doubleclicked=" + str(script_is_doubleclicked))
             
             # .pyw files should have a hidden console unless an exception occurs
             if script_extension == ".pyw":
                 User32.show_window(User32.Const.SW_HIDE)  # Use SW_SHOWMINIMIZED to debug
             
-            # The windows environment variable PROMPT only exists when there is an active console
             # if not run in console (but with py.exe through double-click) the window title will be explicit
-            if ('PROMPT' not in os.environ) and pyexewrap_must_change_title:
+            if script_is_doubleclicked and pyexewrap_must_change_title:
                 os.system("title " + os.path.basename(script_to_execute) + " -- pyexewrap " + script_to_execute)
             
             with open(script_to_execute, 'r') as f: script_code = f.read()
@@ -106,11 +107,14 @@ def main():
             showtraceback()
             print("This exception has ended the script before the end.")
 
-    if pyexewrap_verbose: print("pausing message ?")
+    if pyexewrap_verbose: 
+        print("pausing message ?")
+        print("script_is_doubleclicked=" + str(script_is_doubleclicked))
+        print("pyexewrap_must_pause_in_console=" + str(pyexewrap_must_pause_in_console))
+        print("script_extension=" + script_extension)
 
     # PAUSING MESSAGE AT THE END OF THE SCRIPT
-    # The windows environment variable PROMPT only exists when there is an active console
-    if ('PROMPT' not in os.environ) and pyexewrap_must_pause_in_console and script_extension != ".pyw":
+    if script_is_doubleclicked and pyexewrap_must_pause_in_console and script_extension != ".pyw":
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
         while True:
             wait = input("Press <Enter> to continue and quit."
