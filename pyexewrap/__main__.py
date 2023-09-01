@@ -125,8 +125,12 @@ def main():
     if pause_decision:
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
         while True:
-            wait = input("Press <Enter> to continue and quit."
-                         " (c+<Enter> for cmd console.) (i+<Enter> for interactive python console.)\n")
+            wait = None
+            while wait is None:
+                try:
+                    wait = input("Press <Enter> to Quit. (<c> for cmd console. <i> for interactive python. <r> to restart.)\n")
+                except BaseException:
+                    pass  # Preventing unwanted Ctrl-C repetitions
             if wait.lower() == "c":
                 print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
                 try:
@@ -146,6 +150,10 @@ def main():
                 except BaseException as e:
                     print(traceback.format_exc())
                 print("\n")
+            elif wait.lower() == "r":
+                os.system("cls")
+                main()
+                break
             else:
                 break  # exits while True to end pyexewrap
     
