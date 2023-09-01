@@ -68,6 +68,12 @@ def main():
         script_extension = os.path.splitext(script_to_execute)[1]
         script_is_doubleclicked = ('PROMPT' not in os.environ) or ('pyexewrap_simulate_doubleclick' in os.environ)
 
+        if "pythonw" in sys.executable:
+            err_msg = "Error : pyexewrap should never be running with pythonw.exe !\n" + str(sys.executable) + "\n" + str(sys.argv)
+            print(err_msg)
+            with open("error.txt", "w") as f:
+                f.write(err_msg)
+
         try:
             if pyexewrap_verbose: 
                 print("interpreter is " + sys.executable)
@@ -96,7 +102,7 @@ def main():
 
             if pyexewrap_verbose: print("pyexewrap_must_pause_in_console="+str(pyexewrap_must_pause_in_console))
 
-        except Exception as e:
+        except BaseException as e:
             if script_extension == ".pyw":
                 # From now on pyexewrap will consider the script as a .py file (with a pausing message to display)
                 script_extension = ".py"
@@ -107,14 +113,16 @@ def main():
             showtraceback()
             print("This exception has ended the script before the end.")
 
+    pause_decision = script_is_doubleclicked and pyexewrap_must_pause_in_console and script_extension != ".pyw"
     if pyexewrap_verbose: 
         print("pausing message ?")
         print("script_is_doubleclicked=" + str(script_is_doubleclicked))
         print("pyexewrap_must_pause_in_console=" + str(pyexewrap_must_pause_in_console))
         print("script_extension=" + script_extension)
+        print("pause_decision=" + str(pause_decision))
 
     # PAUSING MESSAGE AT THE END OF THE SCRIPT
-    if script_is_doubleclicked and pyexewrap_must_pause_in_console and script_extension != ".pyw":
+    if pause_decision:
         # Pausing the script to let the user read stdout and/or strerr before the window gets closed
         while True:
             wait = input("Press <Enter> to continue and quit."
