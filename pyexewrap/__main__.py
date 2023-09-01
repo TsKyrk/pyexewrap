@@ -154,8 +154,17 @@ def main():
                 os.system("cls")
                 main()
                 break
-            else:
+            elif wait.lower() == "debug":
+                # Secret feature to help developping new features
+                print("place any variable here to debug it: " + sys.executable)
+            elif wait.lower() == "pyexewrap":
+                # Secret feature to open the tool and start editing the source for new cool features
+                os.system("explorer " + os.path.split(sys.argv[0])[0])
+            elif wait == "":
                 break  # exits while True to end pyexewrap
+            else:
+                # The commands must be typed accurately. Must retry...
+                wait = None
     
     if pyexewrap_verbose: print("pyexewrap ended.")
     sys.exit()
