@@ -20,8 +20,9 @@ def add_path_to_a_windows_environment_variable(my_path : str, env_var : str):
 
     # Check if the parent directory is not already in 'env_var'
     if my_path not in existing_paths_in_env_var:
-        new_PYTHONPATH = current_env_var + ";" + my_path if current_env_var else my_path
-        system_msg, rcode = os_system_stdout("setx /M " + env_var + " " + new_PYTHONPATH)
+        new_env_var = current_env_var + ";" + my_path if current_env_var else my_path
+        print("env_var=" + env_var + "\n" + "new_env_var=" + new_env_var)
+        system_msg, rcode = os_system_stdout('setx /M ' + env_var + ' "' + new_env_var + '"')
         if rcode == 0:
             print(system_msg)
             print("Updated " + env_var + " successfuly.")
