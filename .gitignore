@@ -1,2 +1,8 @@
 /pyexewrap/__pycache__
 /.idea
+/addons/pyexewrap_exe/build/
+/addons/pyexewrap_exe/dist
+/addons/pyexewrap_exe/pyexe_exe.spec
+/addons/pyexewrap_exe/Backup_Full.txt
+/addons/pyexewrap_exe/Backup_One.txt
+/addons/pyexewrap_exe/pyexewrap.spec
