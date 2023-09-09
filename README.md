@@ -88,7 +88,8 @@ globals()['pyexewrap_mustpause_in_console'] = False
 **Icons:** All the scripts launched using pyexewrap will show the Windows Python Launcher icon. A simple solution to use customized icons for your scripts is to create a shortcut to the script and edit its properties to define the custom icon. See the example provided in the "example scripts" folder.
 
 # Side effects and bugs
-None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find.
+<!-- None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find. -->
+- Exit(1) commands will lead to looping pause menu. See E003.
 
 # Todos
 - Implement an installer for an easy deployment of the tool. Maybe upload the tool to Pypi?
