@@ -75,6 +75,7 @@ def main():
                 f.write(err_msg)
 
         try:
+            ################ INITIALIZATION ##############
             if pyexewrap_verbose: 
                 print("interpreter is " + sys.executable)
                 print("CLI is " + " ".join(sys.argv))
@@ -91,10 +92,19 @@ def main():
             
             with open(script_to_execute, 'r') as f: script_code = f.read()
 
+            ################ CODE INJECTION ###############
+            # __file__ variable won't be interpreted correctly in exec(compile()) the workaround is to
+            # inject code to overwrite its content back to the expected default value.
+            code_injection = '\n__file__=r"'+script_to_execute+'"\n'
+            if pyexewrap_verbose: print("code_injection="+code_injection)
+            script_code = script_code.replace("\n",code_injection,1) # Code injected at the first line after the shebang
+    
+            ################ BEHAVIOUR CUSTOMIZATION ######
             # This global variable can be changed by the executed scripts
             global pyexewrap_must_pause_in_console
             pyexewrap_must_pause_in_console = True
-
+            
+            ################ COMPILATION AND EXECUTION ####
             # Execute the script code within the current context
             # note that globals are also binded to exec's locals. This is mandatory : see the unitary test E001.
             compiled_code = compile(script_code, script_to_execute, "exec")
