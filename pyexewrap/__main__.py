@@ -118,7 +118,7 @@ def main():
         if "pythonw" in sys.executable:
             err_msg = "Error : pyexewrap should never be running with pythonw.exe !\n" + str(sys.executable) + "\n" + str(sys.argv)
             print(err_msg)
-            with open("error.txt", "w") as f:
+            with open("error.txt", encoding="UTF-8") as f:
                 f.write(err_msg)
 
         try:
