@@ -3,7 +3,6 @@ import sys
 import traceback
 import code
 
-
 class User32:
     class Const:
         SW_HIDE = 0
@@ -37,7 +36,7 @@ class User32:
 # Maybe I could have somehow imported and used InteractiveInterpreter class from cpython/Lib/code.py instead ?
 def showtraceback():
     """
-    Display the exception that just occurred. But first we remove the first stack item because it is our own code.
+    Displays the exception that just occurred. But first we remove the first stack item because it is our own code.
     """
     sys.last_type, sys.last_value, last_tb = ei = sys.exc_info()
     sys.last_traceback = last_tb
@@ -52,13 +51,61 @@ def showtraceback():
     finally:
         last_tb = ei = None
 
+def display_pause_prompt_and_menu():
+    """
+    Pauses a script to let the user read stdout and/or strerr before the window gets closed
+    """
+    while True:
+        wait = None
+        while wait is None:
+            try:
+                wait = input("Press <Enter> to Quit. (<c> for cmd console. <i> for interactive python. <r> to restart.)\n")
+            except:
+                pass  # Preventing unwanted Ctrl-C repetitions
+        match wait.lower():
+            case "c":
+                print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
+                try:
+                    os.system("cmd /k")
+                except KeyboardInterrupt:
+                    # For some reason Ctrl+C used in cmd console are raised again after returning. So we just pass it.
+                    pass
+                except:
+                    # Just in case there are other exceptions to catch
+                    print(traceback.format_exc())
+                print("\n")
+            case "i":
+                print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
+                try:
+                    code.interact(local=globals())
+                except:
+                    print(traceback.format_exc())
+                print("\n")
+            case "r":
+                os.system("cls")
+                main()
+                break
+            case "debug":
+                # Secret feature to help developping new features
+                print("place any variable here to debug it: " + sys.executable)
+            case "pyexewrap":
+                # Secret feature to open the tool and start editing the source for new cool features
+                os.system("explorer " + os.path.split(sys.argv[0])[0])
+            case "":
+                break  # exits while True to end pyexewrap
+            case _:
+                # The commands must be typed accurately. Must retry...
+                wait = None
 
 # Main function of the pyexewrap package
 def main():
+    ################ BEHAVIOUR CUSTOMIZATION ######
+    pyexewrap_must_pause_in_console = True  # This global can be changed dynamicaly by the enhanced scripts
+    pyexewrap_must_change_title = True
+    pyexewrap_verbose = False
     # pyexewrap_verbose = True  # Uncomment to debug with verbose mode
-    if 'pyexewrap_verbose' not in locals(): pyexewrap_verbose = False
-    if 'pyexewrap_must_change_title' not in locals(): pyexewrap_must_change_title = True
-    
+
+
     if pyexewrap_verbose: print("pyexewrap activated.")
 
     if len(sys.argv) < 2: 
@@ -90,25 +137,40 @@ def main():
             if script_is_doubleclicked and pyexewrap_must_change_title:
                 os.system("title " + os.path.basename(script_to_execute) + " -- pyexewrap " + script_to_execute)
             
-            with open(script_to_execute, 'r') as f: script_code = f.read()
+            with open(script_to_execute) as f:
+                script_code = f.read()
 
             ################ CODE INJECTION ###############
-            # __file__ variable won't be interpreted correctly in exec(compile()) the workaround is to
-            # inject code to overwrite its content back to the expected default value.
-            code_injection = '\n__file__=r"'+script_to_execute+'"\n'
-            if pyexewrap_verbose: print("code_injection="+code_injection)
-            script_code = script_code.replace("\n",code_injection,1) # Code injected at the first line after the shebang
-    
-            ################ BEHAVIOUR CUSTOMIZATION ######
-            # This global variable can be changed by the executed scripts
-            global pyexewrap_must_pause_in_console
-            pyexewrap_must_pause_in_console = True
-            
+            # I have deprecated the use of code injection since it was creating a shift in the line numbering of the
+            # exception tracebacks. One idea could be to inject code only on the first line but it is equivalent to
+            # executing a code here first and then use exec().
+            # Code _modification_ coulds still be a thing though. For replacing a variable by another or changing paths, etc.
+                
             ################ COMPILATION AND EXECUTION ####
-            # Execute the script code within the current context
-            # note that globals are also binded to exec's locals. This is mandatory : see the unitary test E001.
+            #https://docs.python.org/3/library/functions.html?highlight=exec#exec
+            # We don't want the namespace of the exec(compiled_code) being polluted by the imports and declarations of pyexewrap
+            # One option was to make a copy of globals() and remove unwanted imports but I am affraid this would eventually be forgotten for future imports
+            # The other option is to cherry-pick the only necessary global variables. This may have side effects as well since new 
+            # mandatory global vars may appear in python in a distant future.
+            # note that '__file__' key is not set to __file__ but to script_to_execute (see unitary test E004)
+            # note that we could identify the list of default global vars of a python execution from unitary test E004 
+            globalsParameter = {'__annotations__':__annotations__,
+                                '__builtins__' : __builtins__,
+                                '__cached__':None,
+                                '__doc__':__doc__,
+                                '__file__':script_to_execute,
+                                '__loader__':__loader__,
+                                '__name__':__name__,
+                                '__package__':None,
+                                '__spec__':__spec__}
+            localsParameter = {'pyexewrap_must_pause_in_console': pyexewrap_must_pause_in_console}
             compiled_code = compile(script_code, script_to_execute, "exec")
-            exec(compiled_code, globals(), globals())
+            exec(compiled_code, globalsParameter, localsParameter)
+            # I couldn't figure out why the for loop won't work :
+            # for key in localsParameter.keys(): locals()[key] = localsParameter[key]
+            # I had to explicitly retreive the local variable
+            pyexewrap_must_pause_in_console = localsParameter['pyexewrap_must_pause_in_console']
+                
 
             if pyexewrap_verbose: print("pyexewrap_must_pause_in_console="+str(pyexewrap_must_pause_in_console))
 
@@ -133,48 +195,7 @@ def main():
 
     # PAUSING MESSAGE AT THE END OF THE SCRIPT
     if pause_decision:
-        # Pausing the script to let the user read stdout and/or strerr before the window gets closed
-        while True:
-            wait = None
-            while wait is None:
-                try:
-                    wait = input("Press <Enter> to Quit. (<c> for cmd console. <i> for interactive python. <r> to restart.)\n")
-                except BaseException:
-                    pass  # Preventing unwanted Ctrl-C repetitions
-            if wait.lower() == "c":
-                print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
-                try:
-                    os.system("cmd /k")
-                except KeyboardInterrupt:
-                    # For some reason Ctrl+C used in cmd console are raised again after returning. So we just pass it.
-                    pass
-                except BaseException as e:
-                    # Just in case there are other exceptions to catch
-                    print(traceback.format_exc())
-                print("\n")
-            elif wait.lower() == "i":
-                print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
-                # os.system("python")
-                try:
-                    code.interact(local=globals())
-                except BaseException as e:
-                    print(traceback.format_exc())
-                print("\n")
-            elif wait.lower() == "r":
-                os.system("cls")
-                main()
-                break
-            elif wait.lower() == "debug":
-                # Secret feature to help developping new features
-                print("place any variable here to debug it: " + sys.executable)
-            elif wait.lower() == "pyexewrap":
-                # Secret feature to open the tool and start editing the source for new cool features
-                os.system("explorer " + os.path.split(sys.argv[0])[0])
-            elif wait == "":
-                break  # exits while True to end pyexewrap
-            else:
-                # The commands must be typed accurately. Must retry...
-                wait = None
+        display_pause_prompt_and_menu()
     
     if pyexewrap_verbose: print("pyexewrap ended.")
     sys.exit()
