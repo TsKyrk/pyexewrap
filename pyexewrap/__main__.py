@@ -55,52 +55,57 @@ def display_pause_prompt_and_menu():
     """
     Pauses a script to let the user read stdout and/or strerr before the window gets closed
     """
-    # Looping since the pausing message can be repeated if needed
+    # Looping on the pause message as long as it is needed
     while True:
         wait = None
+        # Managing KeyboardInterrupt during the pausing message
         while wait is None:
             try:
                 wait = input("Press <Enter> to Quit. (<c> for cmd console. <i> for interactive python. <r> to restart.)\n")
+            except KeyboardInterrupt:
+                pass  # The menu cannot be left using KeyboardInterrupt
             except:
-                pass  # Preventing unwanted Ctrl-C repetitions
+                print(traceback.format_exc())  # Unexpected exception
         
-        # By default, the script shall end after this prompt
+        # By default, the script is set to end after we break out of the "While True" loop displaying the pausing message
         must_run_script_again = False
-        match wait.lower():
-            case "c":
-                print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
-                try:
-                    os.system("cmd /k")
-                except KeyboardInterrupt:
-                    # For some reason Ctrl+C used in cmd console are raised again after returning. So we just pass it.
-                    pass
-                except:
-                    # Just in case there are other exceptions to catch
-                    print(traceback.format_exc())
-                print("\n")
-            case "i":
-                print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
-                try:
-                    code.interact(local=globals())
-                except:
-                    print(traceback.format_exc())
-                print("\n")
-            case "r":
-                os.system("cls")
-                must_run_script_again = True
-                break
-            case "debug":
-                # Secret feature to help developping new features
-                print("place any variable here to debug it: " + sys.executable)
-            case "pyexewrap":
-                # Secret feature to open the tool and start editing the source for new cool features
-                os.system("explorer " + os.path.split(sys.argv[0])[0])
-            case "":
-                break  # exits while True to end pyexewrap
-            case _:
-                # The commands must be typed accurately. Must retry...
-                wait = None
-        return must_run_script_again
+        if wait.lower() == "c":
+            print('Opening a windows console (cmd.exe). Type "exit" to quit.\n\n')
+            try:
+                os.system("cmd /k")
+            except KeyboardInterrupt:
+                pass
+            except:
+                print(traceback.format_exc())  # Unexpected exception
+            print("\n")
+        elif wait.lower() == "i":
+            print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
+            try:
+                code.interact(local=globals())
+            except KeyboardInterrupt:
+                pass
+            except:
+                print(traceback.format_exc())  # Unexpected exception
+            print("\n")
+        elif wait.lower() == "r":
+            os.system("cls")
+            must_run_script_again = True
+            break
+        elif wait.lower() == "debug":
+            # Secret menu item to help developping new features
+            print("place any variable here to debug it: " + sys.executable)
+        elif wait.lower() == "pyexewrap":
+            # Secret feature to open the tool and start editing the source for new cool features
+            os.system("explorer " + os.path.split(sys.argv[0])[0])
+        elif wait.lower() == "":
+            must_run_script_again = False
+            break  # exits while True to end pyexewrap
+        else:
+            # The commands must be typed accurately. Must retry...
+            wait = None
+
+    # Run after we brake out of the While True loop:
+    return must_run_script_again
 
 
 def run_script(script_to_execute):
@@ -115,6 +120,7 @@ def run_script(script_to_execute):
 
     script_extension = os.path.splitext(script_to_execute)[1]
     script_is_doubleclicked = ('PROMPT' not in os.environ) or ('pyexewrap_simulate_doubleclick' in os.environ)
+    # script_is_doubleclicked = True  # Uncomment this to simulate a double-clicked script even though you are using a console
 
     if "pythonw" in sys.executable:
         err_msg = "Error : pyexewrap should never be running with pythonw.exe !\n" + str(sys.executable) + "\n" + str(sys.argv)
@@ -213,6 +219,11 @@ def run_script(script_to_execute):
 
 # Main function of the pyexewrap package
 def main():
+    # sys.version_info(major=3, minor=11, micro=3, releaselevel='final', serial=0)
+    if sys.version_info.major < 3 or sys.version_info.minor<10:
+        print("Warning: pyexewrap has not been tested with Python version 3.9 and below.")
+        print("sys.version=" + sys.version)
+    
     if len(sys.argv) < 2: 
         print("Usage: python wrap.py <script.py>")
         return
