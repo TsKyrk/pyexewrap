@@ -62,7 +62,7 @@ As a Windows user you should have py.exe on your machine. Hence your Python scri
 **Note #3:** Contrary to python.exe, py.exe has the ability to read shebang lines with "virtual commands". More info [here]( https://python.readthedocs.io/en/latest/using/windows.html#shebang-lines). pyexewrap is built around this feature.
 
 ## Enhancing without a shebang line
-You may not want to alter your scripts with a shebang line that will only work on your machine and will crash their execution for other people. For instance you may be sharing those scripts on a repo or a network folder with people who did not setup pyexewrap yet. Then the shebang line can be replaced by a shortcut or a batch file that will implement the wrapping CLI. The two methods are explained hereafter and examples are also provided in the example_scripts folder.
+You may not want to alter your scripts with a shebang line that will only work on your machine and will crash their execution for other people. For instance you may be sharing those scripts on a repo or a network folder with people who did not setup pyexewrap yet. Then the shebang line can be replaced by a shortcut or a batch file that will implement the wrapping CLI. Different methods are explained hereafter and examples are also provided in the example_scripts folder.
 
 **Using a shortcut:** Create a windows shortcut to the file: ALT+Drag&Drop. Edit the properties of the shortcut (ALT+DoubleClick on Shortcut.lnk). Add the following prefix in the target field : `python -m pyexewrap `. Click OK to save your changes.
 
@@ -72,10 +72,9 @@ You may not want to alter your scripts with a shebang line that will only work o
 set pyexewrap_simulate_doubleclick=1
 python -m pyexewrap "C:\...\your target script with spaces in the name.py"
 ```
+**Using the ByDefaultActivation add-on:** This add-on is in the addon folder. A batch script will associate all the .py and .pyw files with the pyexewrap tool so that any python script (with or without a shebang line) will automatically be run in enhanced mode. Another batch script will associate these extensions back to py.exe. Note that if you are not using py.exe for your python scripts (or you don't have it on your system) this may change the original settings of your Windows system (since these settings are not backed-up by the add-on prior to changes).
 
-**Note #1:** Without the shebang line the tool kinda looses its added value and the workflow is not quite sexy. If you have 20 scripts to enhance you'll have to create wrapper batch or wrapper shortcuts for each one of them to make them running with the enhanced behaviours. See the TODO paragraph for ideas of improvements under consideration.
-
-**Note #2:** The batch method allows relative paths so the batch can be placed in the same folder.
+**Note #1:** The batch method allows relative paths so the batch can be placed in the same folder.
 
 ## Option to not pause (unless an exception occurs)
 An enhanced script can also be setup to only stop in case of uncaught exception and flash away otherwise.
