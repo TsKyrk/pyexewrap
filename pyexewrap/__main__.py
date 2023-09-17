@@ -146,7 +146,17 @@ def run_script(script_to_execute):
         # exception tracebacks. One idea could be to inject code only on the first line but it is equivalent to
         # executing a code here first and then use exec().
         # Code _modification_ coulds still be a thing though. For replacing a variable by another or changing paths, etc.
-            
+        
+        ################ MONKEY PATCHING ####
+        # exit() and quit() raise SystemExit but it also closes stdin which is a problem : I don't know how to reopen stdin after that
+        # The workaround is to monkey patch exit() and quit() and any other quitter defined here : 
+        # https://github.com/python/cpython/blob/add16f1a5e4013f97d33cc677dc008e8199f5b11/Lib/site.py#L400C1-L401C55
+        def pyexewrap_quitter(code=None):
+            print("exit/quit(" + str(code) + ") ==> be aware tha pyexewrap has put a monkeypatch on exit() and quit()")
+            raise SystemExit(code)
+        __builtins__.exit = pyexewrap_quitter  # Comment out to disable the monkeypatch
+        __builtins__.quit = pyexewrap_quitter  # Comment out to disable the monkeypatch
+                
         ################ COMPILATION AND EXECUTION ####
         #https://docs.python.org/3/library/functions.html?highlight=exec#exec
 
@@ -177,6 +187,8 @@ def run_script(script_to_execute):
 
         if pyexewrap_verbose: print("must_pause_in_console="+str(pyexewrap_customizations['must_pause_in_console']))
 
+    except SystemExit as e:
+        pass
     except BaseException as e:
         pyexewrap_customizations['must_pause_in_console'] = True
         if script_extension == ".pyw":
