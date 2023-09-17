@@ -225,7 +225,7 @@ def main():
         print("sys.version=" + sys.version)
     
     if len(sys.argv) < 2: 
-        print("Usage: python wrap.py <script.py>")
+        print("Usage: python -m pyexewrap <script.py>")
         return
     
     # Looping since the script can be run multiple times
@@ -238,7 +238,7 @@ def main():
         # The script is run, depending on the situation there should be a pausing prompt
         pause_decision = run_script(sys.argv[1])
         
-        # Diplaying the pausing prompt (and defining if the script must be run again)
+        # Displaying the pausing prompt (and defining if the script must be run again)
         if pause_decision:
             must_run_script_again = display_pause_prompt_and_menu()
 
