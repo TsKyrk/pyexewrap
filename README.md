@@ -89,14 +89,14 @@ globals()['pyexewrap_mustpause_in_console'] = False
 
 # Side effects and bugs
 <!-- None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find. -->
-- Exit(1) commands will lead to looping pause menu. See E003.
+- exit()/quit() commands in python closes stdin. To prevent this, __builtins__.exit() and __builtins__.quit() have been monkey-patched which might have side effects.
 
 # Todos
 - Implement an installer for an easy deployment of the tool. Maybe upload the tool to Pypi?
 - Define a system-level switch (environment variable?) to set or unset pyexewrap as a default bahaviour that will apply even to the scripts that are not enhanced with a shebang.
 - Setup a context menu item "Run with pyexewrap" to allow using the tool on script that is not enhanced with a shebang line.
 - Setup a context menu item "Bypass pyexewrap" to allow bypassing the tool on script that is not enhanced with a shebang line (no added value at the moment imo).
-- Automate unit tests (no added value at the moment imo).
+- Automate unit tests so that the tool could be tested agains multiple versions of python.
 - Add a version number (no added value at the moment imo).
 
 # Contributions
