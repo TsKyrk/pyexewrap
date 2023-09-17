@@ -90,6 +90,7 @@ globals()['pyexewrap_mustpause_in_console'] = False
 # Side effects and bugs
 <!-- None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find. -->
 - exit()/quit() commands in python closes stdin. To prevent this, __builtins__.exit() and __builtins__.quit() have been monkey-patched which might have side effects.
+- pyexewrap is not compatible with Python 3.8.10 due to dict mergin using | operator. This could be removed.
 
 # Todos
 - Implement an installer for an easy deployment of the tool. Maybe upload the tool to Pypi?
@@ -98,6 +99,9 @@ globals()['pyexewrap_mustpause_in_console'] = False
 - Setup a context menu item "Bypass pyexewrap" to allow bypassing the tool on script that is not enhanced with a shebang line (no added value at the moment imo).
 - Automate unit tests so that the tool could be tested agains multiple versions of python.
 - Add a version number (no added value at the moment imo).
+- Get rid of the (ugly) monkey-patching fix
+- Fix compatibility issue with Python 3.8.10 (stop using | for merging dicts)
+- Test the tool with older versions of python
 
 # Contributions
 I am a newbie to python. Your contributions would be greatly appreciated. Feel free to copy the project.
