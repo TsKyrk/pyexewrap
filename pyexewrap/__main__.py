@@ -105,8 +105,8 @@ def display_pause_prompt_and_menu():
 
 def run_script(script_to_execute):
     ################ BEHAVIOUR CUSTOMIZATION ######
-    global pyexewrap_must_pause_in_console
-    pyexewrap_must_pause_in_console = True  # This global can be changed dynamicaly by the enhanced scripts
+    pyexewrap_customizations = {}
+    pyexewrap_customizations['must_pause_in_console'] = True  # This can be changed dynamicaly by the enhanced scripts
     pyexewrap_must_change_title = True
     pyexewrap_verbose = False
     # pyexewrap_verbose = True  # Uncomment to debug with verbose mode
@@ -150,43 +150,35 @@ def run_script(script_to_execute):
         ################ COMPILATION AND EXECUTION ####
         #https://docs.python.org/3/library/functions.html?highlight=exec#exec
 
-        ## I HAD TO GIVE UP ON THIS DUE TO E001 (import statements not importing modules properly)
-        ## # We don't want the namespace of the exec(compiled_code) being polluted by the imports and declarations of pyexewrap
-        ## # One option was to make a copy of globals() and remove unwanted imports but I am affraid this would eventually be forgotten for future imports
-        ## # The other option is to cherry-pick the only necessary global variables. This may have side effects as well since new 
-        ## # mandatory global vars may appear in python in a distant future.
-        ## # note that '__file__' key is not set to __file__ but to script_to_execute (see unitary test E004)
-        ## # note that we could identify the list of default global vars of a python execution from unitary test E004 
-        ## globalsParameter = {'__annotations__':__annotations__,
-        ##                     '__builtins__' : __builtins__,
-        ##                     '__cached__':None,
-        ##                     '__doc__':__doc__,
-        ##                     '__file__':script_to_execute,
-        ##                     '__loader__':__loader__,
-        ##                     '__name__':__name__,
-        ##                     '__package__':None,
-        ##                     '__spec__':__spec__}
-        ## localsParameter = {'pyexewrap_must_pause_in_console': pyexewrap_must_pause_in_console}
-        ## compiled_code = compile(script_code, script_to_execute, "exec")
-        ## exec(compiled_code, globalsParameter, globalsParameter|localsParameter)
-
-        # Too bad I have to do it this way (see above):
-        globals()['__file__'] = script_to_execute
+        # We don't want the namespace of the exec(compiled_code) being polluted by the imports and declarations of pyexewrap
+        # One option was to make a copy of globals() and remove unwanted imports but I am affraid this would eventually be forgotten for future imports
+        # The other option is to cherry-pick the only necessary global variables. This may have side effects as well since new 
+        # mandatory global vars may appear in python in a distant future.
+        # note that '__file__' key is not set to __file__ but to script_to_execute (see unitary test E004)
+        # note that we could identify the list of default global vars of a python execution from unitary test E004 
+        globalsParameter = {'__annotations__':__annotations__,
+                            '__builtins__' : __builtins__,
+                            '__cached__':None,
+                            '__doc__':__doc__,
+                            '__file__':script_to_execute,
+                            '__loader__':__loader__,
+                            '__name__':__name__,
+                            '__package__':None,
+                            '__spec__':__spec__}
+        localsParameter = {'pyexewrap_customizations':pyexewrap_customizations}
         compiled_code = compile(script_code, script_to_execute, "exec")
-        exec(compiled_code, globals(), globals())
+        exec(compiled_code, globalsParameter|localsParameter)
 
-        # pp.pprint(
+        ##CAN DELETE:
+        ## # Too bad I have to do it this way (see above):
+        ## globals()['__file__'] = script_to_execute
+        ## compiled_code = compile(script_code, script_to_execute, "exec")
+        ## exec(compiled_code, globals(), globals())         
 
-        ## # I couldn't figure out why the for loop won't work :
-        ## # for key in localsParameter.keys(): locals()[key] = localsParameter[key]
-        ## # I had to explicitly retreive the local variable
-        ## pyexewrap_must_pause_in_console = localsParameter['pyexewrap_must_pause_in_console']
-         
-
-        if pyexewrap_verbose: print("pyexewrap_must_pause_in_console="+str(pyexewrap_must_pause_in_console))
+        if pyexewrap_verbose: print("must_pause_in_console="+str(pyexewrap_customizations['must_pause_in_console']))
 
     except BaseException as e:
-        pyexewrap_must_pause_in_console = True
+        pyexewrap_customizations['must_pause_in_console'] = True
         if script_extension == ".pyw":
             # From now on pyexewrap will consider the script as a .py file (with a pausing message to display)
             script_extension = ".py"
@@ -197,11 +189,11 @@ def run_script(script_to_execute):
         showtraceback()
         print("This exception has ended the script before the end.")
 
-    pause_decision = script_is_doubleclicked and pyexewrap_must_pause_in_console and script_extension != ".pyw"
+    pause_decision = script_is_doubleclicked and pyexewrap_customizations['must_pause_in_console'] and script_extension != ".pyw"
     if pyexewrap_verbose: 
         print("pausing message ?")
         print("script_is_doubleclicked=" + str(script_is_doubleclicked))
-        print("pyexewrap_must_pause_in_console=" + str(pyexewrap_must_pause_in_console))
+        print("must_pause_in_console=" + str(pyexewrap_customizations['must_pause_in_console']))
         print("script_extension=" + script_extension)
         print("pause_decision=" + str(pause_decision))
 
