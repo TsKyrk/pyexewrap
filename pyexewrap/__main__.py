@@ -84,6 +84,12 @@ def display_pause_prompt_and_menu():
             print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
             try:
                 global globalsParameter
+                # Import useful debug modules
+                from pprint import pprint as pp
+                globalsParameter['pp']=pp
+                globalsParameter['traceback']=traceback
+                globalsParameter['os']=os
+                globalsParameter['sys']=sys
                 code.interact(local=globalsParameter)
             except KeyboardInterrupt:
                 pass
