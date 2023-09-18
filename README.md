@@ -1,5 +1,5 @@
 # What is pyexewrap ?
-pyexewrap is a tool for those who don't want to run scripts typing command lines in a console but through double-clicks in the Windows file explorer.
+pyexewrap is a tool that enhances the user experience of python script users under the Windows OS. The tool makes it convenient to run python scripts through double-clicks in the Windows file explorer instead of opening a console. It also enhances the debugging and developping process by adding extra features available in an ending prompt menu.
 
 ## Python's native problems for Windows users
 - When a .py file is double-clicked, the script will pop a console that will most likely flash away from the user's screen unless the last line of code has some blocking command like 
@@ -10,22 +10,24 @@ pyexewrap is a tool for those who don't want to run scripts typing command lines
 
 - When a python scripts uses .pyw extension, there is no chance to read the traceback post-mortem since the console windows is natively hidden.
 
-## Main features 
-1. Pyexewrap is a tool that can be used to enhance (wrap) other python scripts. On these enhanced scripts, a pausing message "Press <Enter> to continue." will automatically show up but only if the script is launched through a double-click, but not when it is called by another script or launched through CLI.
+## Main features of "pyexewrap-enhanced" scripts
+1. Pyexewrap is a tool that can be used to enhance (wrap) other python scripts. On these enhanced scripts, a pausing message will automatically show up but only if the script is launched through a double-click, but not when it is called by another script or launched through CLI.
 
-1. Most importantly, on an enhanced script the pausing message will appear even if an exception occurs before the last line of code which will enable a quick post-mortem debugging of the exceptions without needing to re-run scripts from a console to read the lost useful messages.
+1. Most importantly, on an enhanced script the pausing message will appear even if an exception occurs before the last line of code which will enable a quick post-mortem debugging of the exceptions without needing to re-run scripts from a console to access the useful messages that flash away otherwise.
 
-1. For enhanced .pyw scripts (windowed no console Python scripts) in case of uncaught exception that crashes the execution, the console will be displayed with a pausing message so that the user can see the usefull traceback. The user will have to find his own "tricks" to access the useful traceback on these files.
+1. For enhanced .pyw scripts (windowed no console Python scripts) in case of uncaught exception that crashes the execution, the hidden console will show up with a pausing message so that the user can see the usefull traceback.
 
 ## Bonus features
-1. The pausing message enables launching an interactive python console at the end of the script by pressing i+\<Enter\> once prompted. This python console will keep all the local variables of the script that has just run. This is useful for instance to debug the script interactively by digging into variables.
+1. The pausing message enables launching an interactive python console at the end of the script by pressing i+\<Enter\> once prompted. This python console will keep all the local variables of the script that has just run. This is useful for instance to debug the script interactively by digging into variables. This console will have some modules loaded by default (like 'pp' for prettyprint).
 
 1. The pausing message enables launching a cmd console at the end of the script by pressing c+\<Enter\> once prompted. This is useful for instance to launch a proper "pip install xxx" command as a result of a "module not found" exception.
 
-1. Tor double-clicked enhanced scripts the default windows title "py.exe" is replaced with a more explicit one showing the script name being run. This is useful to distinguish the various script windows that are running simultaneously.
+1. For enhanced scripts, the default windows title "py.exe" is replaced with a more explicit one showing the script name being run. This is useful to distinguish the various script windows that are running simultaneously.
 
-## Notes
-- py.exe is already the Windows wrapper for multiple python interpreters. This makes pyexewrap a wrapper of a wrapper. We could wish that someday py.exe will directly implement the features of this tool so that the use of pyexewrap could be deprecated.
+1. Scripts can be rerun by pressing r+\<Enter\>
+
+## Note about py.exe
+py.exe is already the Windows wrapper for multiple python interpreters. This makes pyexewrap a wrapper of a wrapper. We could wish that someday py.exe will directly implement the features of this tool so that the use of pyexewrap could be deprecated.
 
 # Installation and updates on your machine
 Git-clone this repo "https://github.com/TsKyrk/pyexewrap/" to your local drive or [direct download it as a ZIP](https://github.com/TsKyrk/pyexewrap/archive/refs/heads/main.zip) and unzip it to your desired local drive. 
@@ -78,9 +80,9 @@ python -m pyexewrap "C:\...\your target script with spaces in the name.py"
 
 ## Option to not pause (unless an exception occurs)
 An enhanced script can also be setup to only stop in case of uncaught exception and flash away otherwise.
-This is done by setting a global variable that will be checked at the wrapper level. Just add this line anywhere in your script (preferably at the end):
+This is done by setting a global variable that will be checked at the wrapper level. Just add this line anywhere in your script :
 ```commandline
-globals()['pyexewrap_mustpause_in_console'] = False
+pyexewrap_customizations['must_pause_in_console'] = False
 ```
 
 # Useful tricks
