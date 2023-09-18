@@ -3,6 +3,8 @@ import sys
 import traceback
 import code
 
+globalsParameter = {}  # global variable that will store the script's namespace
+
 class User32:
     class Const:
         SW_HIDE = 0
@@ -81,7 +83,8 @@ def display_pause_prompt_and_menu():
         elif wait.lower() == "i":
             print('Opening python interactive console (python.exe). Type "Ctrl+Z to quit.\n\n')
             try:
-                code.interact(local=globals())
+                global globalsParameter
+                code.interact(local=globalsParameter)
             except KeyboardInterrupt:
                 pass
             except:
@@ -166,12 +169,13 @@ def run_script(script_to_execute):
         ################ COMPILATION AND EXECUTION ####
         #https://docs.python.org/3/library/functions.html?highlight=exec#exec
 
-        # We don't want the namespace of the exec(compiled_code) being polluted by the imports and declarations of pyexewrap
+        # We don't want the namespace of the exec(compiled_code) being polluted by all the imports and symbols of pyexewrap
         # One option was to make a copy of globals() and remove unwanted imports but I am affraid this would eventually be forgotten for future imports
         # The other option is to cherry-pick the only necessary global variables. This may have side effects as well since new 
         # mandatory global vars may appear in python in a distant future.
         # note that '__file__' key is not set to __file__ but to script_to_execute (see unitary test E004)
         # note that we could identify the list of default global vars of a python execution from unitary test E004 
+        global globalsParameter
         globalsParameter = {'__annotations__':__annotations__,
                             '__builtins__' : __builtins__,
                             '__cached__':None,
@@ -180,10 +184,10 @@ def run_script(script_to_execute):
                             '__loader__':__loader__,
                             '__name__':__name__,
                             '__package__':None,
-                            '__spec__':__spec__}
-        localsParameter = {'pyexewrap_customizations':pyexewrap_customizations}
+                            '__spec__':__spec__,
+                            'pyexewrap_customizations':pyexewrap_customizations}
         compiled_code = compile(script_code, script_to_execute, "exec")
-        exec(compiled_code, globalsParameter|localsParameter)
+        exec(compiled_code, globalsParameter)
 
         ##CAN DELETE:
         ## # Too bad I have to do it this way (see above):

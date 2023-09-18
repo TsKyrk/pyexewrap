@@ -89,7 +89,6 @@ globals()['pyexewrap_mustpause_in_console'] = False
 # Side effects and bugs
 <!-- None to my knowledge. All the known side effects have been fixed. Please report any bug or side effects you may find. -->
 - exit()/quit() commands in python closes stdin. To prevent this, __builtins__.exit() and __builtins__.quit() have been monkey-patched which might have side effects.
-- pyexewrap is not compatible with Python 3.8.10 due to dict mergin using | operator. This could be removed.
 
 # Todos
 - Implement an installer for an easy deployment of the tool. Maybe upload the tool to Pypi?
