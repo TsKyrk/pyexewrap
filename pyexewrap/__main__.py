@@ -153,7 +153,7 @@ def run_script(script_to_execute):
         if script_is_doubleclicked and pyexewrap_must_change_title:
             os.system("title " + os.path.basename(script_to_execute) + " -- pyexewrap " + script_to_execute)
         
-        with open(script_to_execute) as f:
+        with open(script_to_execute, encoding="UTF-8") as f:
             script_code = f.read()
 
         ################ CODE INJECTION ###############
