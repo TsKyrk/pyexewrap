@@ -68,11 +68,12 @@ def add_to_pythonpath(path: str) -> None:
     except FileNotFoundError:
         current_value = ""
 
-    existing_paths = set(p.strip("\\") for p in current_value.split(";") if p)
+    existing_paths = set(p.strip("\\").lower() for p in current_value.split(";") if p)
 
-    if path.strip("\\") in existing_paths:
+    if path.strip("\\").lower() in existing_paths:
         print(f"'{path}' is already in PYTHONPATH. No changes made.")
         winreg.CloseKey(reg_key)
+        input("Press a key...")
         return
 
     new_value = f"{current_value};{path}" if current_value else path
@@ -88,6 +89,7 @@ def add_to_pythonpath(path: str) -> None:
 
     print("PYTHONPATH updated successfully.")
     print(f"New value: {new_value}")
+    input("Press a key...")
 
 
 if __name__ == "__main__":
