@@ -166,11 +166,12 @@ def run_script(script_to_execute):
         # exit() and quit() raise SystemExit but it also closes stdin which is a problem : I don't know how to reopen stdin after that
         # The workaround is to monkey patch exit() and quit() and any other quitter defined here : 
         # https://github.com/python/cpython/blob/add16f1a5e4013f97d33cc677dc008e8199f5b11/Lib/site.py#L400C1-L401C55
+        import builtins
         def pyexewrap_quitter(code=None):
             print("exit/quit(" + str(code) + ") ==> be aware tha pyexewrap has put a monkeypatch on exit() and quit()")
             raise SystemExit(code)
-        __builtins__.exit = pyexewrap_quitter  # Comment out to disable the monkeypatch
-        __builtins__.quit = pyexewrap_quitter  # Comment out to disable the monkeypatch
+        builtins.exit = pyexewrap_quitter  # Comment out to disable the monkeypatch
+        builtins.quit = pyexewrap_quitter  # Comment out to disable the monkeypatch
                 
         ################ COMPILATION AND EXECUTION ####
         #https://docs.python.org/3/library/functions.html?highlight=exec#exec
@@ -182,8 +183,9 @@ def run_script(script_to_execute):
         # note that '__file__' key is not set to __file__ but to script_to_execute (see unitary test E004)
         # note that we could identify the list of default global vars of a python execution from unitary test E004 
         global globalsParameter
-        globalsParameter = {'__annotations__':__annotations__,
-                            '__builtins__' : __builtins__,
+        import builtins as _builtins_module
+        globalsParameter = {'__annotations__':globals().get('__annotations__', {}),
+                            '__builtins__' : _builtins_module,
                             '__cached__':None,
                             '__doc__':__doc__,
                             '__file__':script_to_execute,
