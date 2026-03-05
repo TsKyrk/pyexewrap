@@ -30,22 +30,11 @@ pyexewrap is a tool that enhances the user experience of python script users und
 py.exe is already the Windows wrapper for multiple python interpreters. This makes pyexewrap a wrapper of a wrapper. We could wish that someday py.exe will directly implement the features of this tool so that the use of pyexewrap could be deprecated.
 
 # Installation and updates on your machine
-Git-clone this repo "https://github.com/TsKyrk/pyexewrap/" to your local drive or [direct download it as a ZIP](https://github.com/TsKyrk/pyexewrap/archive/refs/heads/main.zip) and unzip it to your desired local drive. 
-For example the path to your local copy would look something like "C:\MyRepos\pyexewrap" or "D:\MyRepos\pyexewrap-main" (your choice).
-This path shall then be added to your PYTHONPATH environment variable to be visible from any location.
-You need to have administrator rights for this.
+Git-clone this repo "https://github.com/TsKyrk/pyexewrap/" to your local drive or [direct download it as a ZIP](https://github.com/TsKyrk/pyexewrap/archive/refs/heads/main.zip) and unzip it to your desired local drive.
 
-- This can be done using the Windows GUI (**the recommended way**): see Desktop>Properties>Advanced settings>Environment variables... 
-
-- Or a PowerShell command (not recommended unless you know what you are doing. **I don't recommend this since I did not test it!**:
+Then run `add_to_pythonpath.py` (admin rights required, the script will auto-elevate):
 ```commandline
-$PYTHONPATH = [Environment]::GetEnvironmentVariable("PYTHONPATH")
-$pyexewrap_path = "C:\your\path\here\pyexewrap"
-[Environment]::SetEnvironmentVariable("PYTHONPATH", "$PYTHONPATH;$pyexewrap_path")
-```
-- Or a cmd command (not recommended unless you know what you are doing. **I don't recommend this since I did not test it!**:
-```commandline
-setx /M PYTHONPATH "%PYTHONPATH%;C:\your\path\here\pyexewrap"
+python add_to_pythonpath.py
 ```
 
 That's it. Now the tool can be updated anytime through a git-pull (or a new direct download of the ZIP).

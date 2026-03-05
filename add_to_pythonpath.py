@@ -3,13 +3,34 @@ Adds the root of this repository to the system-wide PYTHONPATH environment varia
 so you can `import pyexewrap` from anywhere without installing the package.
 
 Usage: double-click this file, or run it from any terminal:
-    python setup.py
+    python add_to_pythonpath.py
 
 How it works:
     Writes directly to the Windows registry
     (HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment)
     and broadcasts WM_SETTINGCHANGE so the change takes effect in new terminals
     without requiring a reboot.
+
+Alternatively, you can add the path manually:
+
+  - Windows GUI (recommended):
+      Desktop > Properties > Advanced settings > Environment variables...
+      Add the path to the repo root in the "PYTHONPATH" system variable.
+
+  - PowerShell (run as admin):
+      $pyexewrap_path = "C:\\your\\path\\here\\pyexewrap"
+      [Environment]::SetEnvironmentVariable("PYTHONPATH",
+          [Environment]::GetEnvironmentVariable("PYTHONPATH") + ";$pyexewrap_path",
+          "Machine")
+
+  - cmd (run as admin):
+      setx /M PYTHONPATH "%PYTHONPATH%;C:\\your\\path\\here\\pyexewrap"
+
+Note: why not `pip install -e .` ?
+    pyexewrap is invoked by py.exe via a shebang line. py.exe uses the system Python,
+    not a virtual environment. An editable install inside a venv would therefore not
+    be visible to py.exe when launching scripts from the file explorer.
+    The PYTHONPATH approach is system-wide and works regardless of the active environment.
 """
 
 import os
