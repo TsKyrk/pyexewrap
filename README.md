@@ -30,6 +30,8 @@ pyexewrap is a tool that enhances the user experience of python script users und
 py.exe is already the Windows wrapper for multiple python interpreters. This makes pyexewrap a wrapper of a wrapper. We could wish that someday py.exe will directly implement the features of this tool so that the use of pyexewrap could be deprecated.
 
 # Installation and updates on your machine
+
+## Recommended procedure
 Git-clone this repo "https://github.com/TsKyrk/pyexewrap/" to your local drive or [direct download it as a ZIP](https://github.com/TsKyrk/pyexewrap/archive/refs/heads/main.zip) and unzip it to your desired local drive.
 
 Then run `add_to_pythonpath.py` (admin rights required, the script will auto-elevate):
@@ -38,6 +40,9 @@ python add_to_pythonpath.py
 ```
 
 That's it. Now the tool can be updated anytime through a git-pull (or a new direct download of the ZIP).
+
+## Why not pip install?
+pyexewrap is invoked by `py.exe` via a shebang line. `py.exe` uses the system Python, not a virtual environment. An editable install inside a venv would therefore not be visible to `py.exe` when launching scripts from the file explorer. The PYTHONPATH approach is system-wide and works regardless of the active environment.
 
 # Command line interface usage (The wrapping CLI)
 The command line `python -m pyexewrap <myscript.py>` will run pyexewrap on your scripts. This has no added value at the moment (unless you're aiming for the bonus features of the tool). But this command helps you understand how the tool wraps the other scripts.
