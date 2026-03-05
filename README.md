@@ -74,7 +74,7 @@ You may not want to alter your scripts with a shebang line that will only work o
 set pyexewrap_simulate_doubleclick=1
 python -m pyexewrap "C:\...\your target script with spaces in the name.py"
 ```
-**Using the ByDefaultActivation add-on:** This add-on is in the addon folder. A batch script will associate all the .py and .pyw files with the pyexewrap tool so that any python script (with or without a shebang line) will automatically be run in enhanced mode. Another batch script will associate these extensions back to py.exe. Note that if you are not using py.exe for your python scripts (or you don't have it on your system) this may change the original settings of your Windows system (since these settings are not backed-up by the add-on prior to changes).
+**Using the ByDefaultActivation add-on:** This add-on is in the tools folder. A batch script will associate all the .py and .pyw files with the pyexewrap tool so that any python script (with or without a shebang line) will automatically be run in enhanced mode. Another batch script will associate these extensions back to py.exe. Note that if you are not using py.exe for your python scripts (or you don't have it on your system) this may change the original settings of your Windows system (since these settings are not backed-up by the add-on prior to changes).
 
 **Note #1:** The batch method allows relative paths so the batch can be placed in the same folder.
 
