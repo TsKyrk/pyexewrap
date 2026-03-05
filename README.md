@@ -55,7 +55,7 @@ The command line `python -m pyexewrap <myscript.py>` will run pyexewrap on your 
 
 # Double-click usage on a script (the main purpose of this tool)
 ## Enhancing with a shebang + py.exe
-As a Windows user you should have py.exe on your machine. Hence your Python scripts can be enhanced using a shebang on the first line of code: `#!/usr/bin/env/ python -m pyexewrap`. Then, once double-clicked, your scripts will behave as mentionned above. Try double-clicking on the example scripts provided in the folder "example_scripts" for a better understanding of the added value of enhancing the scripts. The behaviour of enhanced scripts should remain unchanged if called by other scripts (since only py.exe would read the shebang line of the first clicked script).
+As a Windows user you should have py.exe on your machine. Hence your Python scripts can be enhanced using a shebang on the first line of code: `#!/usr/bin/env/ python -m pyexewrap`. Then, once double-clicked, your scripts will behave as mentionned above. Try double-clicking on the example scripts provided in the folder "examples" for a better understanding of the added value of enhancing the scripts. The behaviour of enhanced scripts should remain unchanged if called by other scripts (since only py.exe would read the shebang line of the first clicked script).
 
 **Note #1:** Make sure that your .py file extensions are correctly associated with the Windows Python Launcher (C:\Windows\py.exe): The icon of the application is the Python logo with a rocket on its left. This is the by default configuration of a normal Python installation.
 
@@ -64,7 +64,7 @@ As a Windows user you should have py.exe on your machine. Hence your Python scri
 **Note #3:** Contrary to python.exe, py.exe has the ability to read shebang lines with "virtual commands". More info [here]( https://python.readthedocs.io/en/latest/using/windows.html#shebang-lines). pyexewrap is built around this feature.
 
 ## Enhancing without a shebang line
-You may not want to alter your scripts with a shebang line that will only work on your machine and will crash their execution for other people. For instance you may be sharing those scripts on a repo or a network folder with people who did not setup pyexewrap yet. Then the shebang line can be replaced by a shortcut or a batch file that will implement the wrapping CLI. Different methods are explained hereafter and examples are also provided in the example_scripts folder.
+You may not want to alter your scripts with a shebang line that will only work on your machine and will crash their execution for other people. For instance you may be sharing those scripts on a repo or a network folder with people who did not setup pyexewrap yet. Then the shebang line can be replaced by a shortcut or a batch file that will implement the wrapping CLI. Different methods are explained hereafter and examples are also provided in the examples folder.
 
 **Using a shortcut:** Create a windows shortcut to the file: ALT+Drag&Drop. Edit the properties of the shortcut (ALT+DoubleClick on Shortcut.lnk). Add the following prefix in the target field : `python -m pyexewrap `. Click OK to save your changes.
 
