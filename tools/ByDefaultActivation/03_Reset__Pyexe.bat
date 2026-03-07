@@ -1,7 +1,7 @@
 @echo off
 
 ftype Python.File=C:\Windows\py.exe "%%L" %%*
-ftype Python.NoConFile=C:\Windows\py.exe "%%L" %%*
+ftype Python.NoConsole=C:\Windows\py.exe "%%L" %%*
 
 assoc .py=Python.File
 assoc .pyw=Python.NoConsole
