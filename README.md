@@ -97,6 +97,34 @@ pyexewrap_customizations['must_pause_in_console'] = False
 - Fix compatibility issue with Python 3.8.10 (stop using | for merging dicts)
 - Test the tool with older versions of python
 
+## Known compatibility risk: python/pymanager (MSIX Python Manager)
+
+The `PythonSoftwareFoundation.PythonManager` MSIX package (distributed via the Microsoft Store
+**and** via the "Python Install Manager" from python.org) intercepts `.py`/`.pyw` double-clicks
+through Windows App Model activation. The association is declared in `appxmanifest.xml` — not in
+the registry — so all ftype/assoc registry changes have **no effect** on double-click behavior
+when this package is installed.
+
+**Symptom:** pyexewrap is not invoked on double-click despite correct registry settings. The unit
+tests still pass because they call `run_script()` directly without going through the Windows file
+association chain.
+
+**Diagnosis:** Run `py -m winpyfiles diagnose` — it will show a `[!!] MSIX Python Manager detected` warning.
+
+**Resolution:**
+- Option A: Run `py -m winpyfiles remove-msix` to uninstall the MSIX package automatically.
+  Or uninstall "Python Manager" manually from Windows Settings > Apps > Installed apps (not the Store).
+  After uninstalling, the classic ftype registry mechanism takes over and can be configured normally.
+- Option B: Install Python using the **classic Setup.exe** from https://www.python.org/downloads/windows/
+  (the file named `python-3.x.x-amd64.exe` or `python-3.x.x.exe`, **not** the "Python Install Manager").
+  The classic installer places a real `py.exe` in `C:\Windows\` and uses the traditional HKLM ftype
+  mechanism instead of MSIX.
+
+  > **Warning:** The "Python Install Manager" (also available on python.org) is itself an MSIX package
+  > and does **not** resolve this issue. Make sure to download the direct `.exe` installer.
+
+- Option C: In Windows Settings > Apps > Default apps, manually set the default app for `.py`/`.pyw`.
+
 # Contributions
 I am a newbie to python. Your contributions would be greatly appreciated. Feel free to copy the project.
 

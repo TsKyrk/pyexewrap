@@ -89,12 +89,13 @@ Windows reads settings from registry locations, in priority order:
         print("       EFFECT on what runs when you double-click a .py file on this machine.")
         print()
         print("  How to resolve:")
-        print("    Option A: Uninstall 'Python Manager' (or 'Python Launcher') from the")
-        print("              Microsoft Store. After uninstalling, the classic ftype registry")
-        print("              mechanism takes over and can be configured normally.")
-        print("    Option B: Install Python from https://www.python.org/downloads/ -- the")
-        print("              classic installer places a real py.exe in C:\\Windows\\ and uses")
-        print("              the traditional HKLM ftype mechanism instead of MSIX.")
+        print("    Option A: Run 'py -m winpyfiles remove-msix' to uninstall the MSIX package.")
+        print("              Or uninstall 'Python Manager' manually from Windows Settings > Apps.")
+        print("              After uninstalling, the classic ftype registry mechanism takes over.")
+        print("    Option B: Install Python using the classic Setup.exe from")
+        print("              https://www.python.org/downloads/windows/ (the file named")
+        print("              python-3.x.x-amd64.exe -- NOT the 'Python Install Manager',")
+        print("              which is itself an MSIX and does not resolve this issue).")
         print("    Option C: In Windows Settings > Apps > Default apps, manually set the")
         print("              default app for .py/.pyw files to the desired Python launcher.")
     elif d.msix_package:
@@ -197,6 +198,34 @@ def cmd_reset() -> None:
         print("Done. Run 'py -m winpyfiles diagnose' to verify.")
 
 
+def cmd_remove_msix() -> None:
+    """Uninstall the MSIX Python Manager package for the current user."""
+    from ._assoc import find_msix_python_package
+    pkg = find_msix_python_package()
+    if not pkg:
+        print("No MSIX Python Manager package detected. Nothing to remove.")
+        return
+
+    print(f"Package detected: {pkg}")
+    print("Removing PythonSoftwareFoundation.PythonManager ...")
+    import subprocess
+    result = subprocess.run(
+        [
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            "Get-AppxPackage -Name 'PythonSoftwareFoundation.PythonManager' | Remove-AppxPackage",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        print("Done. Run 'py -m winpyfiles diagnose' to verify.")
+    else:
+        print(f"[!] Removal failed (exit code {result.returncode}).")
+        if result.stderr.strip():
+            print(result.stderr.strip())
+        sys.exit(result.returncode)
+
+
 def cmd_set_command() -> None:
     """Set the open command for a given ProgID."""
     args = [a for a in sys.argv[2:] if not a.startswith("--")]
@@ -228,6 +257,7 @@ COMMANDS = {
     "restore": cmd_restore,
     "reset": cmd_reset,
     "set-command": cmd_set_command,
+    "remove-msix": cmd_remove_msix,
 }
 
 

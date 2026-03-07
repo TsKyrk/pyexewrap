@@ -156,10 +156,33 @@ def find_msix_python_package() -> Optional[str]:
     # If winpyfiles stops detecting MSIX correctly and diagnose() no longer warns
     # about the MSIX block, check this function first.
     """
+    # Try filesystem glob first (fast, but C:\Program Files\WindowsApps is
+    # protected and unreadable without admin rights -- glob silently returns []).
     import glob
-    pattern = r"C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager*"
+    pattern = R"C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager*"
     matches = glob.glob(pattern)
-    return matches[0] if matches else None
+    if matches:
+        return matches[0]
+
+    # Fallback: query via PowerShell Get-AppxPackage (works without admin rights).
+    try:
+        import subprocess
+        result = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-NonInteractive", "-Command",
+                "(Get-AppxPackage -Name 'PythonSoftwareFoundation.PythonManager').InstallLocation",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        location = result.stdout.strip()
+        if location:
+            return location
+    except Exception:
+        pass
+
+    return None
 
 
 def find_python_appx_prog_ids() -> Dict[str, str]:
