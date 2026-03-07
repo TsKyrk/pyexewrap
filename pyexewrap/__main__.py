@@ -66,6 +66,8 @@ def display_pause_prompt_and_menu():
                 wait = input("Press <Enter> to Quit. (<c> for cmd console. <i> for interactive python. <r> to restart.)\n")
             except KeyboardInterrupt:
                 pass  # The menu cannot be left using KeyboardInterrupt
+            except EOFError:
+                wait = ""  # stdin closed (e.g. piped input) -- treat as Enter
             except:
                 print(traceback.format_exc())  # Unexpected exception
         

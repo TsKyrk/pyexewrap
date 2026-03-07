@@ -22,7 +22,7 @@ Two components are essential:
 2. **The Windows registry ftype** must point `.py` → `py.exe`.
    This is what `winpyfiles` inspects and configures.
 
-## Why the MSIX Python Manager breaks this chain
+## The MSIX Python Manager and shebangs
 
 The `PythonSoftwareFoundation.PythonManager` package (available from the Microsoft Store and
 from the "Python Install Manager" on python.org) uses **Windows App Model activation** to handle
@@ -43,29 +43,40 @@ from the "Python Install Manager" on python.org) uses **Windows App Model activa
 </Application>
 ```
 
-When this package is installed, Windows bypasses the registry entirely for `.py` double-clicks
-and invokes the application declared in the manifest — directly launching `python.exe` with the
-clicked file as argument:
+When this package is installed, Windows bypasses the registry entirely for `.py` double-clicks.
+The App Model takes priority over the entire registry ftype mechanism — meaning all changes made
+by `winpyfiles` (ftype, assoc, shell\open\command) have **no effect** on double-click behavior.
+
+**However**, according to the [Python 3.14 documentation](https://docs.python.org/3.14/using/windows.html),
+the MSIX Install Manager **does** include its own launcher that reads shebang lines:
+
+> *"Both the modern Install Manager and deprecated launcher support Unix-style shebang lines."*
+
+This means the chain with MSIX is likely:
 
 ```
 Double-click on script.py
-  → Windows App Model reads appxmanifest.xml           ← bypasses registry
-  → launches python.exe script.py directly             ← py.exe is skipped
-  → python.exe sees #! as a comment, ignores shebang   ← pyexewrap is never called
-  → script runs without pyexewrap
+  → Windows App Model reads appxmanifest.xml           ← bypasses registry ftype
+  → launches MSIX py.exe "script.py"                   ← MSIX launcher, not C:\Windows\py.exe
+  → py.exe reads the shebang: #!/usr/bin/env python -m pyexewrap
+  → py.exe invokes: python.exe -m pyexewrap script.py
+  → python.exe searches for pyexewrap in its environment ← possible failure point
 ```
 
-The consequence: **all registry changes made by `winpyfiles` (ftype, assoc, shell\open\command)
-have no effect** as long as the MSIX package is installed. The App Model takes priority over the
-entire registry ftype mechanism.
+The shebang itself is probably read correctly. The likely failure point is that
+**`python -m pyexewrap` fails because pyexewrap is not visible in the MSIX Python environment**.
+The MSIX Python may have partial isolation from the system `PYTHONPATH`, meaning the
+`add_to_pythonpath.py` installation step has no effect on it.
 
-## Why `winpyfiles` cannot override this
+This hypothesis has not been confirmed by testing — further investigation is needed.
+
+## Why `winpyfiles` cannot override the file association
 
 `winpyfiles set-command` writes to `HKCU\Software\Classes\<ProgID>\shell\open\command`. This
 works for classic (non-MSIX) file associations. For MSIX-registered file types, the App Model
 activation reads `appxmanifest.xml` directly — it does not go through `shell\open\command` at
-all. Even writing to the AppX ProgID keys in HKCU (`AppX...`) has no effect on what is actually
-executed when the file is opened.
+all. Even writing to the AppX ProgID keys in HKCU (`AppX...`) has no effect on what application
+is activated when the file is opened.
 
 ## Detection and resolution
 
@@ -91,14 +102,37 @@ it normally.
 
 ## Long-term outlook
 
-The python.org downloads page states:
+The Python 3.14 documentation officially deprecates the classic Python Launcher:
+
+> *"Deprecated since Python 3.14, will not be produced for Python 3.16+"*
+
+And the python.org downloads page states:
 
 > *"The traditional installer will remain available throughout the 3.14 and 3.15 releases."*
 
-This suggests the classic Setup.exe (which installs `C:\Windows\py.exe` and uses the HKLM ftype
-mechanism) may be removed in a future Python version. If Python moves entirely to MSIX
-distribution, pyexewrap's shebang-based invocation will stop working.
+This means:
+- `C:\Windows\py.exe` (classic launcher) disappears with Python 3.16
+- The classic Setup.exe (which configures the HKLM ftype registry) may also disappear
+- pyexewrap's shebang-based invocation becomes unsupported from Python 3.16 onward
 
-A future-proof alternative would require pyexewrap to be packaged as a real `.exe` (e.g. via
-PyInstaller) registered as a Windows file handler — replacing the shebang mechanism entirely with
-a proper ftype association that `winpyfiles` can control.
+### Possible paths forward
+
+**Option 1 — Adapt to the MSIX Install Manager**
+If the failure is only a `PYTHONPATH` visibility issue (and not a fundamental bypass of shebang
+processing), pyexewrap might work with the MSIX Install Manager once its module is accessible to
+the MSIX Python environment. This requires investigation and possibly a different installation
+strategy (e.g. `pip install` into the MSIX Python, or a `pymanager.json` config hook).
+
+The MSIX Install Manager also has a `shebang_can_run_anything` configuration option that may
+need to be enabled for the `python -m pyexewrap` shebang to be accepted.
+
+**Option 2 — Package pyexewrap as a real `.exe`**
+Build a `pyexewrap.exe` (e.g. via PyInstaller) and register it as a Windows file handler via
+`winpyfiles`. This replaces the shebang mechanism entirely with a proper ftype association,
+making pyexewrap independent of `py.exe` and compatible with any Python distribution.
+This is a significant refactor but the most future-proof approach.
+
+**Option 3 — ByDefaultActivation with a batch wrapper**
+The existing `tools/ByDefaultActivation` approach (associating `.py` with a batch file that
+calls pyexewrap) already bypasses the need for shebangs. However it still depends on the
+registry ftype mechanism being in effect, which MSIX overrides.
