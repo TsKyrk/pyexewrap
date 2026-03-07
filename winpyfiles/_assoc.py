@@ -4,7 +4,7 @@ import shutil
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from ._registry import HKCR, HKCU, HKLM, read_value, write_value
+from ._registry import HKCR, HKCU, HKLM, read_value, write_value, notify_shell_assoc_changed
 
 EXTENSIONS = (".py", ".pyw")
 
@@ -125,15 +125,19 @@ def set_command(prog_id: str, command: str, hive: int = HKLM) -> None:
     """Write the shell open command for a ProgID into the given registry hive.
 
     Requires administrator rights when hive is HKLM (the default).
+    Notifies Explorer of the change so it drops its cached association.
     """
     prefix = "SOFTWARE\\Classes" if hive == HKLM else "Software\\Classes"
     write_value(hive, f"{prefix}\\{prog_id}\\shell\\open\\command", command)
+    notify_shell_assoc_changed()
 
 
 def set_prog_id(extension: str, prog_id: str, hive: int = HKLM) -> None:
     """Map a file extension to a ProgID in the given registry hive.
 
     Requires administrator rights when hive is HKLM (the default).
+    Notifies Explorer of the change so it drops its cached association.
     """
     prefix = "SOFTWARE\\Classes" if hive == HKLM else "Software\\Classes"
     write_value(hive, f"{prefix}\\{extension}", prog_id)
+    notify_shell_assoc_changed()
