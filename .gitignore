@@ -11,9 +11,11 @@ build/
 # Tools
 .idea/
 .pytest_cache/
+.claude/
+/CLAUDE.md
 
-# Addons build artifacts
-/addons/pyexewrap_exe/pyexe_exe.spec
-/addons/pyexewrap_exe/Backup_Full.txt
-/addons/pyexewrap_exe/Backup_One.txt
-/addons/pyexewrap_exe/pyexewrap.spec
+# Tools build artifacts
+/tools/pyexewrap_exe/pyexe_exe.spec
+/tools/pyexewrap_exe/Backup_Full.txt
+/tools/pyexewrap_exe/Backup_One.txt
+/tools/pyexewrap_exe/pyexewrap.spec
