@@ -1,6 +1,6 @@
-# ByDefaultActivation add-on
+# ByDefaultActivation tool
 
-This add-on lets you activate pyexewrap **globally** for all `.py` and `.pyw` files on your machine, without needing to add a shebang line to each script.
+This tool lets you activate pyexewrap **globally** for all `.py` and `.pyw` files on your machine, without needing to add a shebang line to each script.
 
 It works by changing the Windows file-type association (`ftype`) for `Python.File` and `Python.NoConFile` so that double-clicking any Python script automatically goes through pyexewrap.
 
@@ -39,6 +39,29 @@ Python.NoConFile → py.exe "%L" %*
 
 ### `03_Reset__Pyexe_AsAdmin.bat`
 Same as `03_Reset__Pyexe.bat` but triggers a UAC elevation prompt to run with administrator rights.
+
+---
+
+## Registry Files
+
+For direct registry manipulation (alternative to the batch scripts above), you can use these `.reg` files:
+
+### `04_Reset__Open_Python.File_with_c_windows_pyexe.reg`
+Resets the file association back to the standard `py.exe` handler by directly modifying the registry.
+
+### `05_Activation__Open_Python.File_with_pyexewrap.reg`
+Activates pyexewrap as the default handler by directly modifying the registry.
+
+### `06_Activate_Default.reg`
+Hex-encoded version that activates pyexewrap with double-click simulation.
+
+### `07_OpenWithIDLE.reg`
+Adds an "Edit with IDLE" option to the context menu for Python files.
+
+### `08_Open_Python.File_with_py.exe_executable.reg`
+Hex-encoded version that sets the default handler to `py.exe`.
+
+> **Note:** Registry files require administrator rights and modify system settings directly. Use with caution.
 
 ---
 
