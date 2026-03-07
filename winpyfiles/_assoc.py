@@ -31,6 +31,7 @@ class ProgIdInfo:
 class AssocDiagnosis:
     extensions: List[ExtensionInfo]
     prog_ids: Dict[str, ProgIdInfo]
+    msix_handlers: Dict[str, str]  # AppX ProgID -> shell open command (from HKCU)
 
 
 def diagnose() -> AssocDiagnosis:
@@ -70,7 +71,11 @@ def diagnose() -> AssocDiagnosis:
             command_effective=read_value(HKCR, cmd_subkey),
         )
 
-    return AssocDiagnosis(extensions=ext_infos, prog_ids=prog_id_infos)
+    return AssocDiagnosis(
+        extensions=ext_infos,
+        prog_ids=prog_id_infos,
+        msix_handlers=find_python_appx_prog_ids(),
+    )
 
 
 def _is_app_execution_alias(path: str) -> bool:

@@ -71,6 +71,34 @@ Windows reads settings from registry locations, in priority order:
         print(f"    Status          : {status}")
         print()
 
+    print("--- MSIX AppX Handlers (Windows 10/11) ---\n")
+    if d.msix_handlers:
+        print("  [!!] MSIX Python Manager detected -- AppX handlers found in HKCU\\Software\\Classes:")
+        for prog_id, cmd in d.msix_handlers.items():
+            print(f"    {prog_id}")
+            print(f"      command : {cmd}")
+        print()
+        print("  [!!] CRITICAL: These AppX handlers are activated by the MSIX App Model, NOT by")
+        print("       the shell\\open\\command registry value. Windows reads the handler's")
+        print("       AppxManifest.xml directly and runs the bundled Python executable --")
+        print("       completely bypassing ftype, assoc, and shell\\open\\command registry changes.")
+        print()
+        print("       This means: editing the registry (including HKCU AppX overrides) has NO")
+        print("       EFFECT on what runs when you double-click a .py file on this machine.")
+        print()
+        print("  How to resolve:")
+        print("    Option A: Uninstall 'Python Manager' (or 'Python Launcher') from the")
+        print("              Microsoft Store. After uninstalling, the classic ftype registry")
+        print("              mechanism takes over and can be configured normally.")
+        print("    Option B: Install Python from https://www.python.org/downloads/ -- the")
+        print("              classic installer places a real py.exe in C:\\Windows\\ and uses")
+        print("              the traditional HKLM ftype mechanism instead of MSIX.")
+        print("    Option C: In Windows Settings > Apps > Default apps, manually set the")
+        print("              default app for .py/.pyw files to the desired Python launcher.")
+    else:
+        print("  No MSIX AppX Python handlers found -- classic ftype registry mechanism is active.")
+    print()
+
     print("--- Summary ---\n")
     warnings = []
     for ext in d.extensions:
@@ -91,6 +119,12 @@ Windows reads settings from registry locations, in priority order:
             )
         if not cmd:
             warnings.append(f"{ext.extension}: ProgID '{effective_pid}' has no command")
+
+    if d.msix_handlers:
+        warnings.insert(0,
+            "MSIX Python Manager is active -- registry ftype changes have NO EFFECT on "
+            "double-clicks. See 'MSIX AppX Handlers' section above for how to resolve."
+        )
 
     if warnings:
         print("\n  Warnings:")

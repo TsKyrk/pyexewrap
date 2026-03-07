@@ -36,6 +36,15 @@ def main():
             delete_value(HKCU, f"Software\\Classes\\{prog_id}\\shell\\open\\command")
             print(f"    Removed HKCU override for {prog_id}")
         notify_shell_assoc_changed()
+        print()
+        print("  [!!] WARNING: MSIX Python Manager is still installed.")
+        print("       Double-click behavior is controlled by AppxManifest.xml, not the registry.")
+        print("       .py files will continue to open with the MSIX Python Manager's bundled")
+        print("       python.exe -- NOT with the system default launcher.")
+        print()
+        print("  To fully restore default open-with-system-Python behavior:")
+        print("    Option A: Uninstall 'Python Manager' from the Microsoft Store.")
+        print("    Option B: In Windows Settings > Apps > Default apps, reset .py/.pyw manually.")
     else:
         print("\n  No HKCU AppX handlers found.")
 

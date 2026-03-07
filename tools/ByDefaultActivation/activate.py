@@ -46,6 +46,18 @@ def main():
             print(f"    {prog_id}")
             print(f"      was : {original_cmd}")
             print(f"      now : {command}")
+        print()
+        print("  [!!] WARNING: MSIX Python Manager detected.")
+        print("       Windows activates AppX handlers via the App Model (AppxManifest.xml),")
+        print("       NOT via the shell\\open\\command registry value written above.")
+        print("       The registry patch above has NO EFFECT on double-click behavior.")
+        print()
+        print("  How to make pyexewrap the default handler despite MSIX:")
+        print("    Option A: Uninstall 'Python Manager' from the Microsoft Store.")
+        print("              After uninstalling, the HKLM ftype layer (Layer 2) takes effect.")
+        print("    Option B: Install Python from https://www.python.org/downloads/")
+        print("              (classic installer, not Store) to get the traditional launcher.")
+        print("    Option C: Windows Settings > Apps > Default apps > set .py/.pyw manually.")
     else:
         print("\n  No HKCU AppX handlers found (not using MSIX Python Manager).")
 
