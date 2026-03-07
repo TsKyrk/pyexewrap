@@ -13,6 +13,7 @@ build/
 .pytest_cache/
 .claude/
 /CLAUDE.md
+winpyfiles_backup_*.json
 
 # Tools build artifacts
 /tools/pyexewrap_exe/pyexe_exe.spec
