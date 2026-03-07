@@ -34,20 +34,30 @@ which program should open it. This is done in two steps:
   2. ProgID -> Command
      The ProgID defines the command line that Windows executes.
 
-Windows reads settings from two registry locations:
-  HKCU  (HKEY_CURRENT_USER)  -- your personal settings, priority
+Windows reads settings from registry locations, in priority order:
+  UserChoice  (HKCU\\...\\Explorer\\FileExts\\<ext>\\UserChoice)
+              -- Windows 8+ Explorer override, highest priority for double-clicks
+              -- Set by the user via "Open with > Always use this app"
+              -- Cannot be changed programmatically (protected by a hash)
+  HKCU  (HKEY_CURRENT_USER)  -- your personal settings
   HKLM  (HKEY_LOCAL_MACHINE) -- system-wide settings, fallback
-  Active = the value actually used (HKCU overrides HKLM if set)
+  Active = the value actually used when UserChoice is absent
 """)
 
     print("--- Step 1: Extension -> ProgID ---\n")
     for ext in d.extensions:
         active = ext.prog_id_effective or "(not set)"
+        uc = ext.user_choice
         print(f"  {ext.extension}")
+        print(f"    UserChoice      : {uc or '(not set)'}", end="")
+        if uc:
+            print("  <-- Explorer uses this for double-clicks (overrides HKCU/HKLM)")
+        else:
+            print("  <-- not set, Explorer falls back to Active below")
         print(f"    HKCU   (user)   : {ext.prog_id_hkcu or '(not set)'}")
         print(f"    HKLM   (system) : {ext.prog_id_hklm or '(not set)'}")
         print(f"    Active          : {active}")
-        if not ext.prog_id_effective:
+        if not ext.prog_id_effective and not uc:
             print(f"    [!] No ProgID found -- this extension has no handler!")
         print()
 
@@ -64,16 +74,23 @@ Windows reads settings from two registry locations:
     print("--- Summary ---\n")
     warnings = []
     for ext in d.extensions:
-        prog_id = ext.prog_id_effective
-        if not prog_id:
+        # For Explorer double-clicks: UserChoice wins if set.
+        effective_pid = ext.user_choice or ext.prog_id_effective
+        uc_marker = " (UserChoice)" if ext.user_choice else ""
+        if not effective_pid:
             warnings.append(f"{ext.extension}: no ProgID -- extension is unmapped")
             continue
-        info = d.prog_ids.get(prog_id)
+        info = d.prog_ids.get(effective_pid)
         cmd = info.command_effective if info else None
         status = _interpret_command(cmd)
-        print(f"  {ext.extension}  ->  {prog_id}  ->  {status}")
+        print(f"  {ext.extension}  ->  {effective_pid}{uc_marker}  ->  {status}")
+        if ext.user_choice and ext.user_choice != ext.prog_id_effective:
+            warnings.append(
+                f"{ext.extension}: UserChoice '{ext.user_choice}' overrides registry ProgID "
+                f"'{ext.prog_id_effective}' -- ftype/assoc changes have no effect for Explorer double-clicks"
+            )
         if not cmd:
-            warnings.append(f"{ext.extension}: ProgID '{prog_id}' has no command")
+            warnings.append(f"{ext.extension}: ProgID '{effective_pid}' has no command")
 
     if warnings:
         print("\n  Warnings:")

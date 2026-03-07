@@ -12,9 +12,10 @@ EXTENSIONS = (".py", ".pyw")
 @dataclass
 class ExtensionInfo:
     extension: str
-    prog_id_hkcu: Optional[str]      # HKCU\Software\Classes\<ext>  (user override)
-    prog_id_hklm: Optional[str]      # HKLM\SOFTWARE\Classes\<ext>  (system)
+    prog_id_hkcu: Optional[str]       # HKCU\Software\Classes\<ext>  (user override)
+    prog_id_hklm: Optional[str]       # HKLM\SOFTWARE\Classes\<ext>  (system)
     prog_id_effective: Optional[str]  # HKCR\<ext>                   (merged, what Windows uses)
+    user_choice: Optional[str] = None  # HKCU\...\Explorer\FileExts\<ext>\UserChoice  (Windows 8+, Explorer priority)
 
 
 @dataclass
@@ -40,12 +41,18 @@ def diagnose() -> AssocDiagnosis:
         prog_id_hkcu = read_value(HKCU, f"Software\\Classes\\{ext}")
         prog_id_hklm = read_value(HKLM, f"SOFTWARE\\Classes\\{ext}")
         prog_id_effective = read_value(HKCR, ext)
+        user_choice = read_value(
+            HKCU,
+            f"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\{ext}\\UserChoice",
+            value_name="ProgId",
+        )
 
         ext_infos.append(ExtensionInfo(
             extension=ext,
             prog_id_hkcu=prog_id_hkcu,
             prog_id_hklm=prog_id_hklm,
             prog_id_effective=prog_id_effective,
+            user_choice=user_choice,
         ))
 
         for pid in (prog_id_hkcu, prog_id_hklm, prog_id_effective):
@@ -65,14 +72,52 @@ def diagnose() -> AssocDiagnosis:
     return AssocDiagnosis(extensions=ext_infos, prog_ids=prog_id_infos)
 
 
+def _is_app_execution_alias(path: str) -> bool:
+    """Return True if the path is a Windows App Execution Alias stub (not a real exe).
+
+    Windows 10/11 creates lightweight stub executables under
+    C:\\Users\\<user>\\AppData\\Local\\Microsoft\\WindowsApps\\ for apps installed
+    via the Microsoft Store or MSIX packages (including modern Python installs).
+
+    These stubs work fine when invoked interactively (e.g. typing "py" in a terminal),
+    but FAIL SILENTLY when Windows invokes them from an ftype/shell\\open\\command
+    registry entry. Explorer uses a different execution context that does not
+    activate the App Execution Alias infrastructure.
+
+    Concretely: shutil.which("py") may return the WindowsApps stub, but writing
+    that path into the registry ftype command results in a no-op when double-clicking
+    a .py file -- the script runs via a fallback mechanism that bypasses pyexewrap.
+    """
+    return "\\WindowsApps\\" in path
+
+
 def find_py_exe() -> Optional[str]:
-    """Return the path to the Python Launcher (py.exe), or None if not found."""
+    """Return a usable Python executable for ftype/registry shell commands.
+
+    Tries, in order:
+      1. py.exe launcher via PATH -- but only if it is a real executable,
+         not a Windows App Execution Alias stub (see _is_app_execution_alias).
+      2. C:\\Windows\\py.exe -- the classic location from the Python installer.
+      3. sys.executable -- the interpreter currently running this code, which
+         is always a real python.exe (never an alias stub).
+
+    The returned path is safe to embed in a registry shell\\open\\command string.
+    """
+    # Try the py launcher first, but skip App Execution Aliases.
     found = shutil.which("py")
-    if found:
+    if found and not _is_app_execution_alias(found):
         return found
+
+    # Known real location from classic Python installer.
     default = r"C:\Windows\py.exe"
     if os.path.isfile(default):
         return default
+
+    # Fall back to the current interpreter (always a real python.exe).
+    import sys
+    if os.path.isfile(sys.executable) and not _is_app_execution_alias(sys.executable):
+        return sys.executable
+
     return None
 
 
