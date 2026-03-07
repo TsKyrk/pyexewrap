@@ -4,10 +4,19 @@ import sys
 import os
 
 
+def _find_python():
+    """Return 'py' if available, otherwise fall back to the current interpreter."""
+    try:
+        subprocess.run(["py", "--version"], capture_output=True, check=True)
+        return "py"
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return sys.executable
+
+
 def main():
     repo_root = os.path.dirname(os.path.abspath(__file__))
     result = subprocess.run(
-        ["py", "-m", "pytest", "tests/", "-v"],
+        [_find_python(), "-m", "pytest", "tests/", "-v"],
         cwd=repo_root,
     )
     print(f"\nExit code: {result.returncode}")

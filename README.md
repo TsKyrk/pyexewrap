@@ -112,16 +112,24 @@ association chain.
 **Diagnosis:** Run `py -m winpyfiles diagnose` — it will show a `[!!] MSIX Python Manager detected` warning.
 
 **Resolution:**
-- Option A: Run `py -m winpyfiles remove-msix` to uninstall the MSIX package automatically.
-  Or uninstall "Python Manager" manually from Windows Settings > Apps > Installed apps (not the Store).
-  After uninstalling, the classic ftype registry mechanism takes over and can be configured normally.
+- Option A *(recommended)*: Run `py -m winpyfiles remove-msix` to uninstall the MSIX package
+  automatically. Or uninstall "Python Manager" manually from Windows Settings > Apps > Installed apps
+  (not the Store). After uninstalling, the classic ftype registry mechanism takes over.
+
+  > **Note:** After uninstalling the MSIX, you must also install a Python runtime separately since
+  > the MSIX package provided both the launcher and the runtime. Use the classic Setup.exe (see
+  > Option B) or reinstall your preferred Python distribution.
+
 - Option B: Install Python using the **classic Setup.exe** from https://www.python.org/downloads/windows/
-  (the file named `python-3.x.x-amd64.exe` or `python-3.x.x.exe`, **not** the "Python Install Manager").
+  (look for the file named `python-3.x.x-amd64.exe`, listed under "Windows installer (64-bit)").
   The classic installer places a real `py.exe` in `C:\Windows\` and uses the traditional HKLM ftype
   mechanism instead of MSIX.
 
-  > **Warning:** The "Python Install Manager" (also available on python.org) is itself an MSIX package
-  > and does **not** resolve this issue. Make sure to download the direct `.exe` installer.
+  > **Warning:** The "Python Install Manager" (also listed on that page, and in the Microsoft Store)
+  > is itself an MSIX package and does **not** resolve this issue. The python.org download page
+  > mentions: *"The traditional installer will remain available throughout the 3.14 and 3.15 releases"*
+  > — meaning it may be removed in future Python versions. pyexewrap may therefore face a long-term
+  > incompatibility with MSIX-only Python distributions.
 
 - Option C: In Windows Settings > Apps > Default apps, manually set the default app for `.py`/`.pyw`.
 
