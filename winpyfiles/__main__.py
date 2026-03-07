@@ -1,7 +1,7 @@
 """CLI entry point: python -m winpyfiles [command]"""
 import sys
 
-from ._assoc import diagnose
+from ._assoc import diagnose, find_py_exe, set_command
 from ._backup import backup, restore
 from ._elevation import is_admin, elevate_and_rerun
 
@@ -10,10 +10,8 @@ def _interpret_command(command):
     """Return a human-readable status for a ftype command string."""
     if not command:
         return "[!] NOT CONFIGURED -- double-clicking this file type will likely fail"
-    if "pyexewrap" in command.lower():
-        return "[OK] pyexewrap active"
     if "py.exe" in command.lower() or "python" in command.lower():
-        return "[-] standard Python launcher (no pyexewrap)"
+        return "[OK] Python launcher configured"
     return "[?] unknown handler"
 
 
@@ -110,10 +108,70 @@ def cmd_restore() -> None:
     print("Run 'py -m winpyfiles diagnose' to verify.")
 
 
+def cmd_reset() -> None:
+    """Reset all effective Python extension ProgIDs to use py.exe directly."""
+    elevate = "--elevate" in sys.argv
+
+    if not is_admin():
+        if elevate:
+            elevate_and_rerun()
+        else:
+            print("[!] Reset requires administrator rights.")
+            print("    Add --elevate to trigger a UAC prompt automatically.")
+            sys.exit(1)
+
+    py_exe = find_py_exe()
+    if not py_exe:
+        print("[!] py.exe not found. Is the Python Launcher installed?")
+        sys.exit(1)
+
+    command = f'"{py_exe}" "%1" %*'
+    d = diagnose()
+    prog_ids_set = set()
+    for ext in d.extensions:
+        pid = ext.prog_id_effective
+        if pid and pid not in prog_ids_set:
+            set_command(pid, command)
+            print(f"  Set {pid} -> {command}")
+            prog_ids_set.add(pid)
+
+    if not prog_ids_set:
+        print("[!] No effective ProgIDs found. Nothing to reset.")
+    else:
+        print("Done. Run 'py -m winpyfiles diagnose' to verify.")
+
+
+def cmd_set_command() -> None:
+    """Set the open command for a given ProgID."""
+    args = [a for a in sys.argv[2:] if not a.startswith("--")]
+    elevate = "--elevate" in sys.argv
+
+    if len(args) < 2:
+        print("Usage: py -m winpyfiles set-command <ProgID> <command> [--elevate]")
+        print("Example: py -m winpyfiles set-command Python.File '\"C:\\Windows\\py.exe\" \"%1\" %*'")
+        sys.exit(1)
+
+    prog_id, command = args[0], args[1]
+
+    if not is_admin():
+        if elevate:
+            elevate_and_rerun()
+        else:
+            print("[!] set-command requires administrator rights.")
+            print("    Add --elevate to trigger a UAC prompt automatically.")
+            sys.exit(1)
+
+    set_command(prog_id, command)
+    print(f"Set {prog_id} -> {command}")
+    print("Run 'py -m winpyfiles diagnose' to verify.")
+
+
 COMMANDS = {
     "diagnose": cmd_diagnose,
     "backup": cmd_backup,
     "restore": cmd_restore,
+    "reset": cmd_reset,
+    "set-command": cmd_set_command,
 }
 
 
