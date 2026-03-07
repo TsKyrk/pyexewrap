@@ -31,7 +31,8 @@ class ProgIdInfo:
 class AssocDiagnosis:
     extensions: List[ExtensionInfo]
     prog_ids: Dict[str, ProgIdInfo]
-    msix_handlers: Dict[str, str]  # AppX ProgID -> shell open command (from HKCU)
+    msix_handlers: Dict[str, str]   # AppX ProgID -> shell open command (from HKCU)
+    msix_package: Optional[str]     # Path to PythonSoftwareFoundation.PythonManager install dir, or None
 
 
 def diagnose() -> AssocDiagnosis:
@@ -75,6 +76,7 @@ def diagnose() -> AssocDiagnosis:
         extensions=ext_infos,
         prog_ids=prog_id_infos,
         msix_handlers=find_python_appx_prog_ids(),
+        msix_package=find_msix_python_package(),
     )
 
 
@@ -125,6 +127,39 @@ def find_py_exe() -> Optional[str]:
         return sys.executable
 
     return None
+
+
+def find_msix_python_package() -> Optional[str]:
+    """Return the install directory of the MSIX Python Manager package, or None.
+
+    Detects the presence of PythonSoftwareFoundation.PythonManager by looking
+    for its directory under C:\\Program Files\\WindowsApps\\. This is a more
+    robust signal than the AppX ProgID heuristic in find_python_appx_prog_ids(),
+    because it does not rely on the 'AppX' naming convention that Windows uses
+    internally and could theoretically change in future OS versions.
+
+    # KNOWN COMPATIBILITY RISK: python/pymanager (https://github.com/python/pymanager)
+    # ---------------------------------------------------------------------------------
+    # The PythonSoftwareFoundation.PythonManager MSIX package intercepts .py/.pyw
+    # double-clicks through Windows App Model activation (declared in appxmanifest.xml,
+    # Application Id="Python.Exe", Category="windows.fileTypeAssociation"). This
+    # mechanism reads AppxManifest.xml directly and bypasses ALL registry-based
+    # ftype/assoc/shell\\open\\command settings, making winpyfiles' set_command()
+    # effectively a no-op for double-click scenarios.
+    #
+    # Future evolutions of python/pymanager to watch:
+    #   - New file type associations (.py3, etc.) added to appxmanifest.xml
+    #   - Changes to AppX ProgID naming that would break find_python_appx_prog_ids()
+    #   - Removal/rename of the PythonSoftwareFoundation.PythonManager package
+    #     (would require updating the glob pattern below)
+    #
+    # If winpyfiles stops detecting MSIX correctly and diagnose() no longer warns
+    # about the MSIX block, check this function first.
+    """
+    import glob
+    pattern = r"C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager*"
+    matches = glob.glob(pattern)
+    return matches[0] if matches else None
 
 
 def find_python_appx_prog_ids() -> Dict[str, str]:

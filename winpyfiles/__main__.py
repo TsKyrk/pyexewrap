@@ -1,7 +1,7 @@
 """CLI entry point: python -m winpyfiles [command]"""
 import sys
 
-from ._assoc import diagnose, find_py_exe, set_command
+from ._assoc import diagnose, find_py_exe, find_msix_python_package, set_command
 from ._backup import backup, restore
 from ._elevation import is_admin, elevate_and_rerun
 
@@ -72,6 +72,8 @@ Windows reads settings from registry locations, in priority order:
         print()
 
     print("--- MSIX AppX Handlers (Windows 10/11) ---\n")
+    if d.msix_package:
+        print(f"  Package detected : {d.msix_package}")
     if d.msix_handlers:
         print("  [!!] MSIX Python Manager detected -- AppX handlers found in HKCU\\Software\\Classes:")
         for prog_id, cmd in d.msix_handlers.items():
@@ -95,8 +97,11 @@ Windows reads settings from registry locations, in priority order:
         print("              the traditional HKLM ftype mechanism instead of MSIX.")
         print("    Option C: In Windows Settings > Apps > Default apps, manually set the")
         print("              default app for .py/.pyw files to the desired Python launcher.")
+    elif d.msix_package:
+        print("  [!] Package found on disk but no AppX ProgIDs detected in registry.")
+        print("      The MSIX block may still be active -- run diagnose after a fresh login.")
     else:
-        print("  No MSIX AppX Python handlers found -- classic ftype registry mechanism is active.")
+        print("  No MSIX Python Manager detected -- classic ftype registry mechanism is active.")
     print()
 
     print("--- Summary ---\n")
