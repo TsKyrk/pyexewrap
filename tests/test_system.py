@@ -8,7 +8,13 @@ pyexewrap when a .py file is double-clicked.
 These tests can fail due to external system state (MSIX packages, missing
 file associations) rather than code bugs. A failure here means pyexewrap
 will not be invoked on double-click, even if the unit tests pass.
+
+MSIX Python Manager compatibility:
+  The shebang approach (#!/usr/bin/env python -m pyexewrap) works correctly
+  with the MSIX launcher. Only ByDefaultActivation (registry ftype changes)
+  is blocked by MSIX. See MSIX_COMPATIBILITY.md for details.
 """
+import warnings
 import pytest
 
 try:
@@ -24,44 +30,32 @@ _winpyfiles = pytest.mark.skipif(
 
 
 @_winpyfiles
-def test_no_msix_python_manager():
-    """FAIL if the MSIX Python Manager (Microsoft Store) is installed.
+def test_msix_python_manager_shebang_compatible():
+    """WARN (not fail) if the MSIX Python Manager is installed.
 
-    PythonSoftwareFoundation.PythonManager intercepts .py/.pyw double-clicks
-    through Windows App Model activation declared in its AppxManifest.xml.
-    This mechanism bypasses ALL registry-based ftype/assoc/shell\\open\\command
-    settings -- making pyexewrap completely unreachable on double-click.
+    The MSIX launcher includes its own py.exe that reads shebang lines, so
+    the shebang approach (#!/usr/bin/env python -m pyexewrap) works correctly
+    with the MSIX Python Manager. This has been confirmed by double-click testing.
 
-    The unit tests (test_pyexewrap.py) still pass because they call run_script()
-    directly, without going through the Windows file association chain.
+    What does NOT work with MSIX:
+      ByDefaultActivation (registry ftype changes via winpyfiles/activate.py)
+      are silently ignored by the App Model activation.
 
-    Resolution: uninstall 'Python Manager' from the Microsoft Store.
-    See README.md section 'Known compatibility risk: python/pymanager'.
+    See MSIX_COMPATIBILITY.md for the full compatibility matrix.
     """
     pkg = find_msix_python_package()
-    if pkg:
-        pytest.fail(
-            f"\n\n"
-            f"  MSIX Python Manager detected:\n"
-            f"    {pkg}\n\n"
-            f"  This package intercepts .py/.pyw double-clicks via Windows App Model\n"
-            f"  activation (AppxManifest.xml), bypassing all ftype/registry settings.\n"
-            f"  pyexewrap CANNOT be invoked on double-click while this is installed.\n\n"
-            f"  The unit tests still pass because they call run_script() directly --\n"
-            f"  they do not go through the Windows file association chain.\n\n"
-            f"  Resolution: uninstall 'Python Manager' from the Microsoft Store.\n"
-            f"  See README.md 'Known compatibility risk: python/pymanager'."
-        )
-
     handlers = find_python_appx_prog_ids()
-    if handlers:
-        pytest.fail(
+
+    if pkg or handlers:
+        warnings.warn(
             f"\n\n"
-            f"  MSIX AppX Python handlers detected in registry:\n"
-            f"    {list(handlers.keys())}\n\n"
-            f"  These handlers take priority over ftype settings for .py double-clicks.\n"
-            f"  pyexewrap cannot be invoked until the MSIX package is removed.\n"
-            f"  See README.md 'Known compatibility risk: python/pymanager'."
+            f"  MSIX Python Manager detected: {pkg or '(package path unknown)'}\n\n"
+            f"  Shebang approach (#!/usr/bin/env python -m pyexewrap): works correctly.\n"
+            f"  ByDefaultActivation (registry ftype via winpyfiles): does NOT work --\n"
+            f"  registry changes are bypassed by the App Model activation.\n\n"
+            f"  See MSIX_COMPATIBILITY.md for details.",
+            UserWarning,
+            stacklevel=2,
         )
 
 
