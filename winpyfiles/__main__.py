@@ -2,7 +2,8 @@
 import sys
 
 from ._assoc import diagnose
-from ._backup import backup
+from ._backup import backup, restore
+from ._elevation import is_admin, elevate_and_rerun
 
 
 def _interpret_command(command):
@@ -89,9 +90,30 @@ def cmd_backup() -> None:
     print(f"Backup saved: {saved}")
 
 
+def cmd_restore() -> None:
+    if len(sys.argv) < 3:
+        print("Usage: py -m winpyfiles restore <backup_file.json>")
+        sys.exit(1)
+    path = sys.argv[2]
+    elevate = "--elevate" in sys.argv
+
+    if not is_admin():
+        if elevate:
+            elevate_and_rerun()
+        else:
+            print("[!] Restore requires administrator rights.")
+            print("    Add --elevate to trigger a UAC prompt automatically.")
+            sys.exit(1)
+
+    restore(path)
+    print(f"Restored from: {path}")
+    print("Run 'py -m winpyfiles diagnose' to verify.")
+
+
 COMMANDS = {
     "diagnose": cmd_diagnose,
     "backup": cmd_backup,
+    "restore": cmd_restore,
 }
 
 

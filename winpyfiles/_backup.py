@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from ._assoc import AssocDiagnosis, ExtensionInfo, ProgIdInfo, diagnose
+from ._registry import HKCU, HKLM, write_value, delete_value
 
 _BACKUP_VERSION = 1
 
@@ -32,6 +33,30 @@ def backup(path: Optional[str] = None) -> str:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
     return path
+
+
+def _set_or_delete(hive: int, key_path: str, value: Optional[str]) -> None:
+    if value is not None:
+        write_value(hive, key_path, value)
+    else:
+        delete_value(hive, key_path)
+
+
+def restore(path: str) -> None:
+    """Write back the associations saved in a backup file. Requires admin rights."""
+    d = load_backup(path)
+
+    # Restore extension -> ProgID mappings
+    for ext in d.extensions:
+        _set_or_delete(HKCU, f"Software\\Classes\\{ext.extension}", ext.prog_id_hkcu)
+        _set_or_delete(HKLM, f"SOFTWARE\\Classes\\{ext.extension}", ext.prog_id_hklm)
+
+    # Restore ProgID -> Command mappings
+    for prog_id, info in d.prog_ids.items():
+        hkcu_key = f"Software\\Classes\\{prog_id}\\shell\\open\\command"
+        hklm_key = f"SOFTWARE\\Classes\\{prog_id}\\shell\\open\\command"
+        _set_or_delete(HKCU, hkcu_key, info.command_hkcu)
+        _set_or_delete(HKLM, hklm_key, info.command_hklm)
 
 
 def load_backup(path: str) -> AssocDiagnosis:
