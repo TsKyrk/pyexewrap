@@ -2,6 +2,7 @@
 from ._assoc import (
     diagnose,
     find_py_exe,
+    find_python_appx_prog_ids,
     set_command,
     set_prog_id,
     AssocDiagnosis,
@@ -12,6 +13,7 @@ from ._assoc import (
 __all__ = [
     "diagnose",
     "find_py_exe",
+    "find_python_appx_prog_ids",
     "set_command",
     "set_prog_id",
     "AssocDiagnosis",

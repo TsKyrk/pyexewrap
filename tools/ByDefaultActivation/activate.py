@@ -1,9 +1,14 @@
 """Activate pyexewrap as the default handler for .py and .pyw files.
 
-Sets the shell open command for every effective Python ProgID so that
-double-clicking a .py or .pyw file routes through pyexewrap.
+On systems with the MSIX Python Manager/Launcher (installed from the Microsoft
+Store or via a modern Python installer), double-clicks on .py files are handled
+by AppX ProgIDs registered in HKCU -- these take priority over the traditional
+HKLM ftype mechanism. This script patches both layers:
 
-Requires administrator rights (UAC prompt triggered automatically).
+  1. HKCU AppX handlers (no admin needed) -- the ones actually used by Explorer
+  2. HKLM Python.File / Python.NoConsole ftype (requires admin) -- fallback layer
+
+Backs up the current registry state before making any change.
 """
 import sys
 import os
@@ -13,57 +18,61 @@ _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-from winpyfiles import diagnose, find_py_exe, set_command
+from winpyfiles import diagnose, find_py_exe, find_python_appx_prog_ids, set_command
+from winpyfiles._registry import HKCU
 from winpyfiles._elevation import is_admin, elevate_and_rerun
 from winpyfiles._backup import backup
 
 
 def main():
-    if not is_admin():
-        elevate_and_rerun()
-        return
-
     py_exe = find_py_exe()
     if not py_exe:
-        print("[!] py.exe not found. Is the Python Launcher installed?")
+        print("[!] No usable Python executable found. Is Python installed?")
         sys.exit(1)
 
     # Save current state before modifying anything.
     saved = backup()
     print(f"Backup saved: {saved}")
 
-    command = (
-        f'cmd /c set "pyexewrap_simulate_doubleclick=1"'
-        f'&&"{py_exe}" -m pyexewrap "%1" %*'
-    )
+    command = f'"{py_exe}" -m pyexewrap "%1" %*'
 
-    d = diagnose()
-    prog_ids_done = set()
-    for ext in d.extensions:
-        pid = ext.prog_id_effective
-        if not pid:
-            print(f"  [!] {ext.extension}: no effective ProgID -- skipped")
-            continue
-        if pid in prog_ids_done:
-            continue
-        set_command(pid, command)
-        print(f"  Set {pid} -> {command}")
-        prog_ids_done.add(pid)
+    # --- Layer 1: HKCU AppX handlers (used by Explorer on MSIX Python systems) ---
+    # These take priority over HKLM ftype and require no admin rights.
+    appx_handlers = find_python_appx_prog_ids()
+    if appx_handlers:
+        print("\n  Patching HKCU AppX handlers (MSIX Python Manager):")
+        for prog_id, original_cmd in appx_handlers.items():
+            set_command(prog_id, command, hive=HKCU)
+            print(f"    {prog_id}")
+            print(f"      was : {original_cmd}")
+            print(f"      now : {command}")
+    else:
+        print("\n  No HKCU AppX handlers found (not using MSIX Python Manager).")
 
-    if not prog_ids_done:
-        print("[!] No effective ProgIDs found. Nothing was changed.")
-        sys.exit(1)
+    # --- Layer 2: HKLM ftype (classic fallback, requires admin) ---
+    if not is_admin():
+        print("\n  [!] Skipping HKLM ftype update (requires admin).")
+        print("      Re-run as admin or use --elevate to also update the classic ftype layer.")
+    else:
+        d = diagnose()
+        prog_ids_done = set()
+        print("\n  Updating HKLM ftype (classic layer):")
+        for ext in d.extensions:
+            pid = ext.prog_id_effective
+            if not pid or pid in prog_ids_done:
+                continue
+            set_command(pid, command)
+            print(f"    Set {pid} -> {command}")
+            prog_ids_done.add(pid)
 
     print("\nDone. pyexewrap is now the default handler for .py and .pyw files.")
     print("Run 'py -m winpyfiles diagnose' to verify.")
 
-    # Pause when double-clicked.
     if _is_double_clicked():
         input("\nPress Enter to close...")
 
 
 def _is_double_clicked():
-    """Heuristic: no arguments and running as a frozen exe or via Explorer."""
     return len(sys.argv) == 1 and sys.stdin and sys.stdin.isatty()
 
 

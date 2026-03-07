@@ -1,6 +1,7 @@
 """Windows file association management for Python scripts."""
 import os
 import shutil
+import winreg
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -119,6 +120,41 @@ def find_py_exe() -> Optional[str]:
         return sys.executable
 
     return None
+
+
+def find_python_appx_prog_ids() -> Dict[str, str]:
+    """Return AppX ProgIDs in HKCU\\Software\\Classes that handle Python files.
+
+    On Windows 10/11, when the Python Launcher (or Python Manager) is installed
+    via the Microsoft Store or as an MSIX package, it registers file type handlers
+    under ProgIDs named AppX<hash> in HKCU\\Software\\Classes. These handlers
+    take priority over the traditional HKLM\\SOFTWARE\\Classes\\Python.File
+    ftype mechanism -- Windows uses the AppX handler directly for double-clicks,
+    completely bypassing any ftype/assoc registry settings.
+
+    This function enumerates HKCU\\Software\\Classes for AppX ProgIDs whose
+    shell\\open\\command references a Python executable, so callers can modify
+    or inspect them.
+
+    Returns a dict mapping ProgID -> current shell open command string.
+    """
+    result: Dict[str, str] = {}
+    try:
+        with winreg.OpenKey(HKCU, "Software\\Classes") as classes_key:
+            i = 0
+            while True:
+                try:
+                    prog_id = winreg.EnumKey(classes_key, i)
+                    if prog_id.startswith("AppX"):
+                        cmd = read_value(HKCU, f"Software\\Classes\\{prog_id}\\shell\\open\\command")
+                        if cmd and "python" in cmd.lower():
+                            result[prog_id] = cmd
+                    i += 1
+                except OSError:
+                    break
+    except OSError:
+        pass
+    return result
 
 
 def set_command(prog_id: str, command: str, hive: int = HKLM) -> None:
