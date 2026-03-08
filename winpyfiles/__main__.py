@@ -71,33 +71,47 @@ Windows reads settings from registry locations, in priority order:
         print(f"    Status          : {status}")
         print()
 
+    _PYEXEWRAP_PROG_ID = "pyexewrap.PyFile"
+    _bda_user_choices = {
+        ext.extension: ext.user_choice
+        for ext in d.extensions
+        if ext.user_choice == _PYEXEWRAP_PROG_ID
+    }
+    _bda_active = bool(_bda_user_choices)
+
     print("--- MSIX AppX Handlers (Windows 10/11) ---\n")
     if d.msix_package:
         print(f"  Package detected : {d.msix_package}")
     if d.msix_handlers:
-        print("  [!!] MSIX Python Manager detected -- AppX handlers found in HKCU\\Software\\Classes:")
+        print("  [i] MSIX Python Manager detected -- AppX handlers found in HKCU\\Software\\Classes:")
         for prog_id, cmd in d.msix_handlers.items():
             print(f"    {prog_id}")
             print(f"      command : {cmd}")
         print()
-        print("  [!!] CRITICAL: These AppX handlers are activated by the MSIX App Model, NOT by")
-        print("       the shell\\open\\command registry value. Windows reads the handler's")
-        print("       AppxManifest.xml directly and runs the bundled Python executable --")
-        print("       completely bypassing ftype, assoc, and shell\\open\\command registry changes.")
+        print("  Compatibility with pyexewrap:")
         print()
-        print("       This means: editing the registry (including HKCU AppX overrides) has NO")
-        print("       EFFECT on what runs when you double-click a .py file on this machine.")
+        print("    [OK] Shebang approach (#!/usr/bin/env python -m pyexewrap): works correctly.")
+        print("         The MSIX launcher reads shebang lines and invokes pyexewrap as expected.")
         print()
-        print("  How to resolve:")
-        print("    Option A: Run 'py -m winpyfiles remove-msix' to uninstall the MSIX package.")
-        print("              Or uninstall 'Python Manager' manually from Windows Settings > Apps.")
-        print("              After uninstalling, the classic ftype registry mechanism takes over.")
-        print("    Option B: Install Python using the classic Setup.exe from")
-        print("              https://www.python.org/downloads/windows/ (the file named")
-        print("              python-3.x.x-amd64.exe -- NOT the 'Python Install Manager',")
-        print("              which is itself an MSIX and does not resolve this issue).")
-        print("    Option C: In Windows Settings > Apps > Default apps, manually set the")
-        print("              default app for .py/.pyw files to the desired Python launcher.")
+        print("    [!!] activate.py AppX/HKLM registry layers: do NOT work.")
+        print("         The App Model reads AppxManifest.xml directly, bypassing all registry")
+        print("         ftype/assoc/shell\\open\\command changes.")
+        print()
+        if _bda_active:
+            print("    [OK] ByDefaultActivation via register.py + UserChoice: active.")
+            print("         UserChoice is set to pyexewrap.PyFile -- scripts without a shebang")
+            print("         will be wrapped by pyexewrap on double-click.")
+        else:
+            print("    [i]  ByDefaultActivation for scripts without a shebang: currently inactive.")
+            print("         To enable:")
+            print("           1. Run 'py tools/ByDefaultActivation/register.py'")
+            print("           2. Right-click a .py file > Ouvrir avec > Choisir une autre application")
+            print("              > pyexewrap > Toujours utiliser cette application")
+            print("         This sets UserChoice, which the MSIX launcher honors.")
+        print()
+        print("  To remove MSIX and restore the classic ftype mechanism:")
+        print("    Run 'py -m winpyfiles remove-msix'")
+        print("    Or uninstall 'Python Manager' manually from Windows Settings > Apps.")
     elif d.msix_package:
         print("  [!] Package found on disk but no AppX ProgIDs detected in registry.")
         print("      The MSIX block may still be active -- run diagnose after a fresh login.")
@@ -127,10 +141,18 @@ Windows reads settings from registry locations, in priority order:
             warnings.append(f"{ext.extension}: ProgID '{effective_pid}' has no command")
 
     if d.msix_handlers:
-        warnings.insert(0,
-            "MSIX Python Manager is active -- registry ftype changes have NO EFFECT on "
-            "double-clicks. See 'MSIX AppX Handlers' section above for how to resolve."
-        )
+        if _bda_active:
+            warnings.insert(0,
+                "MSIX Python Manager is active -- activate.py registry layers have NO EFFECT. "
+                "ByDefaultActivation via register.py + UserChoice is active. "
+                "Shebang approach works correctly. See 'MSIX AppX Handlers' section above."
+            )
+        else:
+            warnings.insert(0,
+                "MSIX Python Manager is active -- activate.py registry layers have NO EFFECT. "
+                "ByDefaultActivation is inactive (UserChoice not set to pyexewrap.PyFile). "
+                "Shebang approach works correctly. See 'MSIX AppX Handlers' section above."
+            )
 
     if warnings:
         print("\n  Warnings:")

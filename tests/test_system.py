@@ -10,11 +10,10 @@ file associations) rather than code bugs. A failure here means pyexewrap
 will not be invoked on double-click, even if the unit tests pass.
 
 MSIX Python Manager compatibility:
-  The shebang approach (#!/usr/bin/env python -m pyexewrap) works correctly
-  with the MSIX launcher. Only ByDefaultActivation (registry ftype changes)
-  is blocked by MSIX. See MSIX_COMPATIBILITY.md for details.
+  Both the shebang approach and ByDefaultActivation via register.py work with MSIX.
+  Only activate.py's AppX HKCU layer has no effect (bypassed by App Model).
+  See MSIX_COMPATIBILITY.md for the full compatibility matrix.
 """
-import warnings
 import pytest
 
 try:
@@ -27,36 +26,6 @@ _winpyfiles = pytest.mark.skipif(
     not HAS_WINPYFILES,
     reason="winpyfiles not importable (add repo root to PYTHONPATH)"
 )
-
-
-@_winpyfiles
-def test_msix_python_manager_shebang_compatible():
-    """WARN (not fail) if the MSIX Python Manager is installed.
-
-    The MSIX launcher includes its own py.exe that reads shebang lines, so
-    the shebang approach (#!/usr/bin/env python -m pyexewrap) works correctly
-    with the MSIX Python Manager. This has been confirmed by double-click testing.
-
-    What does NOT work with MSIX:
-      ByDefaultActivation (registry ftype changes via winpyfiles/activate.py)
-      are silently ignored by the App Model activation.
-
-    See MSIX_COMPATIBILITY.md for the full compatibility matrix.
-    """
-    pkg = find_msix_python_package()
-    handlers = find_python_appx_prog_ids()
-
-    if pkg or handlers:
-        warnings.warn(
-            f"\n\n"
-            f"  MSIX Python Manager detected: {pkg or '(package path unknown)'}\n\n"
-            f"  Shebang approach (#!/usr/bin/env python -m pyexewrap): works correctly.\n"
-            f"  ByDefaultActivation (registry ftype via winpyfiles): does NOT work --\n"
-            f"  registry changes are bypassed by the App Model activation.\n\n"
-            f"  See MSIX_COMPATIBILITY.md for details.",
-            UserWarning,
-            stacklevel=2,
-        )
 
 
 @_winpyfiles
