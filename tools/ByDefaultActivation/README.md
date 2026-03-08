@@ -3,11 +3,6 @@
 Make pyexewrap the default handler for **all** `.py` and `.pyw` files on double-click —
 including scripts with no shebang line.
 
-Without ByDefaultActivation, pyexewrap is only invoked for scripts that explicitly include:
-```
-#!/usr/bin/env python -m pyexewrap
-```
-
 ## Quick reference
 
 | Goal | How |
@@ -55,6 +50,12 @@ Automatically detects the Python installation type and undoes the corresponding 
 - **Classic Python**: removes the ProgID and resets the HKLM ftype to the plain Python
   launcher. A UAC prompt appears automatically if admin rights are needed.
 
+> **Note (MSIX):** `disable.py` removes pyexewrap from **all** double-clicks, including
+> scripts with a shebang line. On MSIX, the shebang approach (`#!/usr/bin/env python -m pyexewrap`)
+> is not reliably invoked on double-click because the App Model activation does not propagate
+> the system PYTHONPATH. There is no stable "selective" mode on MSIX. See
+> [MSIX_COMPATIBILITY.md](../../MSIX_COMPATIBILITY.md) for details.
+
 A backup of the current registry state is saved automatically before any change.
 
 ---
@@ -69,6 +70,7 @@ registry changes. ByDefaultActivation works via UserChoice:
 |---|---|---|
 | `activate.py` (MSIX path) | **Yes** ✓ | `pyexewrap.PyFile` ProgID + UserChoice set via UI |
 | `activate.py` (classic path) | **Yes, without MSIX** | HKLM ftype registry |
+| Shebang `#!/usr/bin/env python -m pyexewrap` on double-click | **Unreliable** ⚠ | App Model may not propagate PYTHONPATH |
 
 See [MSIX_COMPATIBILITY.md](../../MSIX_COMPATIBILITY.md) for the full compatibility matrix.
 

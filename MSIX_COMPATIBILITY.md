@@ -26,9 +26,26 @@ Two components are essential:
 
 | Invocation method | Works with MSIX? | Works without MSIX? |
 |---|---|---|
-| Shebang `#!/usr/bin/env python -m pyexewrap` | **Yes** ✓ | **Yes** ✓ |
-| `activate.py` → `pyexewrap.PyFile` ProgID + UserChoice | **Yes** ✓ | **Yes** ✓ |
+| `activate.py` → ByDefaultActivation (UserChoice) | **Yes** ✓ | **Yes** ✓ |
+| Shebang `#!/usr/bin/env python -m pyexewrap` on double-click | **Unreliable** ⚠ | **Yes** ✓ |
 | `activate.py` HKLM ftype layer | **No** ✗ | **Yes** ✓ |
+
+### Why the shebang approach is unreliable on MSIX double-click
+
+The MSIX App Model activates `.py` files in an isolated environment that may not inherit
+the system PYTHONPATH. When the pymanager launcher reads `#!/usr/bin/env python -m pyexewrap`
+and runs `python -m pyexewrap script.py`, it may fail to find the `pyexewrap` module —
+even if `python -m pyexewrap` works correctly from a CLI terminal.
+
+The CLI works because interactive terminals inherit PYTHONPATH from the registry. App Model
+activation does not guarantee the same inheritance.
+
+**Consequence:** `disable.py` removes pyexewrap from all double-clicks, including shebang
+scripts. On MSIX, there is no stable "selective" mode.
+
+**Recommendation:** on MSIX systems, use ByDefaultActivation (UserChoice) for all scripts.
+The shebang line `#!/usr/bin/env python -m pyexewrap` can be used as a fallback for CLI
+invocation but should not be relied upon for double-click on MSIX.
 
 ## The MSIX Python Manager
 
@@ -54,9 +71,10 @@ The `PythonSoftwareFoundation.PythonManager` package (from the Microsoft Store o
 When this package is installed, Windows bypasses the registry ftype entirely and invokes the
 MSIX application declared in the manifest — the pymanager launcher (`py.exe`). This launcher:
 
-- **Reads shebang lines** → the shebang approach works correctly with MSIX.
 - **Honors UserChoice** → if UserChoice is set to `pyexewrap.PyFile`, the launcher invokes
-  pyexewrap for files without a shebang line.
+  pyexewrap for all `.py` files (the recommended approach).
+- **Reads shebang lines** → invokes the command specified in the shebang, but without
+  guaranteed PYTHONPATH propagation (unreliable for `python -m pyexewrap`).
 
 ### What is bypassed by MSIX
 
@@ -67,8 +85,7 @@ package is installed. The App Model reads `appxmanifest.xml` directly.
 ### What is NOT bypassed
 
 `HKCU\Software\Classes\pyexewrap.PyFile\shell\open\command` is a standard HKCU ProgID key,
-not an AppX key. It is read by the pymanager launcher as part of its file handling logic.
-UserChoice set via the Windows UI is also honored by the MSIX launcher.
+not an AppX key. UserChoice set via the Windows UI is honored by the MSIX launcher.
 This is why `activate.py`'s ProgID + UserChoice approach works under MSIX.
 
 ## How to switch ByDefaultActivation on and off
@@ -91,6 +108,9 @@ py tools/ByDefaultActivation/disable.py
 
 Removes the `pyexewrap.PyFile` ProgID and resets the HKLM ftype on classic systems.
 On MSIX, shows instructions if UserChoice needs to be cleared manually.
+
+> **Note (MSIX):** after `disable.py`, the shebang approach is also unreliable on double-click
+> due to PYTHONPATH propagation issues. Re-enable via `activate.py` to restore full wrapping.
 
 ### Diagnose current state
 
@@ -115,8 +135,8 @@ This means:
 - The classic Setup.exe (which configures the HKLM ftype registry) may also disappear
 
 **Impact on pyexewrap:**
-- **Shebang approach**: continues to work — the MSIX launcher reads shebangs.
 - **ByDefaultActivation via `activate.py` (MSIX path)**: continues to work — the pymanager
   launcher honors UserChoice and reads the `pyexewrap.PyFile` HKCU ProgID.
 - **ByDefaultActivation via `activate.py` HKLM layer**: stops working when the classic
   Setup.exe disappears, as there will be no `Python.File` HKLM ftype to patch.
+- **Shebang approach on double-click**: unreliable on MSIX due to PYTHONPATH propagation.
