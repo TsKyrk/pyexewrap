@@ -1,74 +1,129 @@
-"""Activate pyexewrap as the default handler for .py and .pyw files.
+#!/usr/bin/env python
+"""Enable pyexewrap as the default handler for .py and .pyw double-clicks.
 
-On systems with the MSIX Python Manager/Launcher (installed from the Microsoft
-Store or via a modern Python installer), double-clicks on .py files are handled
-by AppX ProgIDs registered in HKCU -- these take priority over the traditional
-HKLM ftype mechanism. This script patches both layers:
+Automatically detects the Python installation type and applies the right configuration:
 
-  1. HKCU AppX handlers (no admin needed) -- the ones actually used by Explorer
-  2. HKLM Python.File / Python.NoConsole ftype (requires admin) -- fallback layer
+  - MSIX Python Manager (Microsoft Store / Python Install Manager):
+      Registers the pyexewrap.PyFile ProgID (so pyexewrap appears as a choice),
+      then prompts you to set it as the default via Windows Settings.
+      This manual step is required because the MSIX App Model bypasses all
+      registry ftype changes -- only UserChoice (set via the UI) takes effect.
 
-Backs up the current registry state before making any change.
+  - Classic Python (no MSIX, python-x.x.x-amd64.exe installer):
+      Registers the pyexewrap.PyFile ProgID and updates the HKLM ftype registry
+      (requires admin -- a UAC prompt will appear automatically).
+      pyexewrap becomes the default immediately, no UI interaction needed.
+
+Backs up the current registry state before any change.
 """
 import sys
 import os
+import winreg
 
-# Allow running directly from this folder without installing the packages.
 _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+for _p in (_repo_root, _this_dir):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from winpyfiles import diagnose, find_py_exe, find_python_appx_prog_ids, set_command
-from winpyfiles._registry import HKCU
+from winpyfiles._assoc import find_msix_python_package
+from winpyfiles._registry import HKCU, write_value, notify_shell_assoc_changed
 from winpyfiles._elevation import is_admin, elevate_and_rerun
 from winpyfiles._backup import backup
 
+PROG_ID = "pyexewrap.PyFile"
+APP_KEY = "pyexewrap"
+APP_DISPLAY_NAME = "pyexewrap"
+APP_DESCRIPTION = "Python script launcher with automatic virtual environment activation"
+EXTENSIONS = (".py", ".pyw")
+
+
+def _register(py_exe):
+    """Create the pyexewrap.PyFile ProgID and related registry entries."""
+    command = f'"{py_exe}" -m pyexewrap "%1" %*'
+    icon = f'"{py_exe}",0'
+
+    write_value(HKCU, f"Software\\Classes\\{PROG_ID}", APP_DISPLAY_NAME)
+    write_value(HKCU, f"Software\\Classes\\{PROG_ID}\\DefaultIcon", icon)
+    write_value(HKCU, f"Software\\Classes\\{PROG_ID}\\shell\\open\\command", command)
+    with winreg.CreateKeyEx(HKCU, f"Software\\Classes\\{PROG_ID}\\shell\\open",
+                            access=winreg.KEY_WRITE) as k:
+        winreg.SetValueEx(k, "FriendlyAppName", 0, winreg.REG_SZ, APP_DISPLAY_NAME)
+
+    write_value(HKCU, f"Software\\Classes\\Applications\\{APP_KEY}\\shell\\open\\command", command)
+    with winreg.CreateKeyEx(HKCU, f"Software\\Classes\\Applications\\{APP_KEY}\\shell\\open",
+                            access=winreg.KEY_WRITE) as k:
+        winreg.SetValueEx(k, "FriendlyAppName", 0, winreg.REG_SZ, APP_DISPLAY_NAME)
+    with winreg.CreateKeyEx(HKCU, f"Software\\Classes\\Applications\\{APP_KEY}\\SupportedTypes",
+                            access=winreg.KEY_WRITE) as k:
+        for ext in EXTENSIONS:
+            winreg.SetValueEx(k, ext, 0, winreg.REG_SZ, "")
+
+    caps_path = f"Software\\{APP_KEY}\\Capabilities"
+    write_value(HKCU, caps_path, APP_DISPLAY_NAME, value_name="ApplicationName")
+    write_value(HKCU, caps_path, APP_DESCRIPTION, value_name="ApplicationDescription")
+    with winreg.CreateKeyEx(HKCU, f"{caps_path}\\FileAssociations",
+                            access=winreg.KEY_WRITE) as k:
+        for ext in EXTENSIONS:
+            winreg.SetValueEx(k, ext, 0, winreg.REG_SZ, PROG_ID)
+    with winreg.CreateKeyEx(HKCU, "Software\\RegisteredApplications",
+                            access=winreg.KEY_WRITE) as k:
+        winreg.SetValueEx(k, APP_KEY, 0, winreg.REG_SZ, caps_path)
+
+    for ext in EXTENSIONS:
+        with winreg.CreateKeyEx(HKCU, f"Software\\Classes\\{ext}\\OpenWithProgids",
+                                access=winreg.KEY_WRITE) as k:
+            winreg.SetValueEx(k, PROG_ID, 0, winreg.REG_NONE, b"")
+
+    notify_shell_assoc_changed()
+    print(f"  [OK] pyexewrap.PyFile ProgID registered (command: {command})")
+
 
 def main():
+    saved = backup()
+    print(f"Backup saved: {saved}\n")
+
     py_exe = find_py_exe()
     if not py_exe:
         print("[!] No usable Python executable found. Is Python installed?")
         sys.exit(1)
 
-    # Save current state before modifying anything.
-    saved = backup()
-    print(f"Backup saved: {saved}")
+    # Step 1: register the ProgID (works for both MSIX and classic).
+    _register(py_exe)
 
-    command = f'"{py_exe}" -m pyexewrap "%1" %*'
-
-    # --- Layer 1: HKCU AppX handlers (used by Explorer on MSIX Python systems) ---
-    # These take priority over HKLM ftype and require no admin rights.
-    appx_handlers = find_python_appx_prog_ids()
-    if appx_handlers:
-        print("\n  Patching HKCU AppX handlers (MSIX Python Manager):")
-        for prog_id, original_cmd in appx_handlers.items():
-            set_command(prog_id, command, hive=HKCU)
-            print(f"    {prog_id}")
-            print(f"      was : {original_cmd}")
-            print(f"      now : {command}")
+    # Step 2: apply the appropriate activation mechanism.
+    msix = find_msix_python_package() or find_python_appx_prog_ids()
+    if msix:
+        # MSIX: UserChoice is the only working mechanism.
+        # It cannot be set programmatically (protected by a hash) -- guide the user.
         print()
-        print("  [!!] WARNING: MSIX Python Manager detected.")
-        print("       Windows activates AppX handlers via the App Model (AppxManifest.xml),")
-        print("       NOT via the shell\\open\\command registry value written above.")
-        print("       The registry patch above has NO EFFECT on double-click behavior.")
-        print()
-        print("  How to make pyexewrap the default handler despite MSIX:")
-        print("    Option A: Uninstall 'Python Manager' from the Microsoft Store.")
-        print("              After uninstalling, the HKLM ftype layer (Layer 2) takes effect.")
-        print("    Option B: Install Python from https://www.python.org/downloads/")
-        print("              (classic installer, not Store) to get the traditional launcher.")
-        print("    Option C: Windows Settings > Apps > Default apps > set .py/.pyw manually.")
+        d = diagnose()
+        already_active = [e for e in d.extensions if e.user_choice == PROG_ID]
+        if already_active:
+            exts = " and ".join(e.extension for e in already_active)
+            print(f"[OK] ByDefaultActivation already active for {exts} (UserChoice set).")
+        else:
+            print("[i] MSIX Python Manager detected.")
+            print("    Step 1 is done: pyexewrap.PyFile ProgID is registered.")
+            print()
+            print("    Step 2 (manual): set pyexewrap as the default via Windows.")
+            print("      Right-click a .py file > Ouvrir avec > Choisir une autre application")
+            print("      > pyexewrap > Toujours utiliser cette application")
+            print()
+            print("    Or: Parametres > Applications > Applications par defaut > .py")
+            print("        and select pyexewrap.")
     else:
-        print("\n  No HKCU AppX handlers found (not using MSIX Python Manager).")
+        # Classic: update HKLM ftype (requires admin, auto-elevate).
+        if not is_admin():
+            print("\n  Admin rights required to update HKLM ftype. Requesting elevation...")
+            elevate_and_rerun()
+            return
 
-    # --- Layer 2: HKLM ftype (classic fallback, requires admin) ---
-    if not is_admin():
-        print("\n  [!] Skipping HKLM ftype update (requires admin).")
-        print("      Re-run as admin or use --elevate to also update the classic ftype layer.")
-    else:
+        command = f'"{py_exe}" -m pyexewrap "%1" %*'
         d = diagnose()
         prog_ids_done = set()
-        print("\n  Updating HKLM ftype (classic layer):")
+        print("\n  Updating HKLM ftype:")
         for ext in d.extensions:
             pid = ext.prog_id_effective
             if not pid or pid in prog_ids_done:
@@ -77,15 +132,13 @@ def main():
             print(f"    Set {pid} -> {command}")
             prog_ids_done.add(pid)
 
-    print("\nDone. pyexewrap is now the default handler for .py and .pyw files.")
-    print("Run 'py -m winpyfiles diagnose' to verify.")
+    print()
+    print("Done. Run 'py -m winpyfiles diagnose' to verify.")
 
-    if _is_double_clicked():
+    try:
         input("\nPress Enter to close...")
-
-
-def _is_double_clicked():
-    return len(sys.argv) == 1 and sys.stdin and sys.stdin.isatty()
+    except EOFError:
+        pass  # Running non-interactively (e.g. piped input in tests)
 
 
 if __name__ == "__main__":

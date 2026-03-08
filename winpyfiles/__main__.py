@@ -98,16 +98,13 @@ Windows reads settings from registry locations, in priority order:
         print("         ftype/assoc/shell\\open\\command changes.")
         print()
         if _bda_active:
-            print("    [OK] ByDefaultActivation via register.py + UserChoice: active.")
+            print("    [OK] ByDefaultActivation via activate.py + UserChoice: active.")
             print("         UserChoice is set to pyexewrap.PyFile -- scripts without a shebang")
             print("         will be wrapped by pyexewrap on double-click.")
         else:
             print("    [i]  ByDefaultActivation for scripts without a shebang: currently inactive.")
-            print("         To enable:")
-            print("           1. Run 'py tools/ByDefaultActivation/register.py'")
-            print("           2. Right-click a .py file > Ouvrir avec > Choisir une autre application")
-            print("              > pyexewrap > Toujours utiliser cette application")
-            print("         This sets UserChoice, which the MSIX launcher honors.")
+            print("         To enable: run 'py tools/ByDefaultActivation/activate.py'")
+            print("         and follow the on-screen instructions to set UserChoice via Windows.")
         print()
         print("  To remove MSIX and restore the classic ftype mechanism:")
         print("    Run 'py -m winpyfiles remove-msix'")
@@ -144,7 +141,7 @@ Windows reads settings from registry locations, in priority order:
         if _bda_active:
             warnings.insert(0,
                 "MSIX Python Manager is active -- activate.py registry layers have NO EFFECT. "
-                "ByDefaultActivation via register.py + UserChoice is active. "
+                "ByDefaultActivation via activate.py + UserChoice is active. "
                 "Shebang approach works correctly. See 'MSIX AppX Handlers' section above."
             )
         else:

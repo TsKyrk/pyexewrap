@@ -10,11 +10,10 @@ Without ByDefaultActivation, pyexewrap is only invoked for scripts that explicit
 
 ## Quick reference
 
-| Goal | Command |
+| Goal | How |
 |---|---|
-| Enable (all .py files wrapped) | `py register.py` then `py activate.py` |
-| Disable (back to plain Python) | `py reset.py` |
-| Undo `register.py` completely | `py unregister.py` |
+| Enable (all .py files wrapped) | Double-click `activate.bat`, or run `py activate.py` from CLI |
+| Disable (back to plain Python) | Double-click `disable.bat`, or run `py disable.py` from CLI |
 | Diagnose current state | `py diagnose.py` or `py -m winpyfiles diagnose` |
 | Restore a saved state | `py -m winpyfiles restore <backup_file.json>` |
 
@@ -22,37 +21,20 @@ Without ByDefaultActivation, pyexewrap is only invoked for scripts that explicit
 
 ## How to enable
 
-### Step 1 — `register.py` (no admin required)
-
-```
-py tools/ByDefaultActivation/register.py
-```
-
-Registers `pyexewrap` as a known application in Windows by creating a `pyexewrap.PyFile` ProgID
-in `HKCU\Software\Classes`. This ProgID points to `python.exe -m pyexewrap "%1" %*`.
-
-**This step is required for compatibility with the MSIX Python Manager.** The pymanager launcher
-reads this HKCU ProgID for `.py` files that have no shebang line, and invokes pyexewrap
-accordingly — even when the MSIX App Model bypasses the classic registry ftype mechanism.
-
-### Step 2 — `activate.py` (admin optional)
-
 ```
 py tools/ByDefaultActivation/activate.py
-py tools/ByDefaultActivation/activate.py --elevate   # also update HKLM (classic systems)
 ```
 
-Patches two registry layers:
+Automatically detects the Python installation type and applies the right configuration:
 
-1. **HKCU AppX handlers** (no admin) — writes pyexewrap to the `AppXxxxx\shell\open\command`
-   keys registered by the MSIX Python Manager.
+- **MSIX Python Manager** (Microsoft Store / Python Install Manager): registers the
+  `pyexewrap.PyFile` ProgID, then prompts you to set pyexewrap as the default via Windows
+  Settings. This manual step is required because the MSIX App Model bypasses all registry
+  ftype changes — only UserChoice (set via the UI) takes effect.
 
-   > **Note:** These AppX keys are bypassed by the MSIX App Model, which reads
-   > `appxmanifest.xml` directly. Use `register.py` (Step 1) for MSIX compatibility.
-
-2. **HKLM ftype** (admin required, `--elevate`) — sets `Python.File\shell\open\command` to
-   `py.exe -m pyexewrap "%1" %*` for systems using the classic registry ftype mechanism
-   (non-MSIX Python installations).
+- **Classic Python** (no MSIX, `python-x.x.x-amd64.exe` installer): registers the ProgID
+  and updates the HKLM ftype registry. A UAC prompt appears automatically if admin rights
+  are needed. pyexewrap becomes the default immediately, no UI interaction required.
 
 A backup of the current registry state is saved automatically before any change.
 
@@ -60,23 +42,20 @@ A backup of the current registry state is saved automatically before any change.
 
 ## How to disable
 
-### `reset.py` (admin optional)
-
 ```
-py tools/ByDefaultActivation/reset.py
-py tools/ByDefaultActivation/reset.py --elevate   # also reset HKLM
+py tools/ByDefaultActivation/disable.py
 ```
 
-Removes the AppX HKCU overrides written by `activate.py` and resets the HKLM ftype back to
-plain `py.exe "%1" %*`. Backs up the current state before any change.
+Automatically detects the Python installation type and undoes the corresponding configuration:
 
-> **Note:** `reset.py` does **not** remove the `pyexewrap.PyFile` ProgID created by `register.py`.
-> Scripts without a shebang will still be wrapped by pyexewrap on MSIX systems after `reset.py`.
->
-> To fully undo `register.py`, run:
-> ```
-> py tools/ByDefaultActivation/unregister.py
-> ```
+- **MSIX Python Manager**: removes the `pyexewrap.PyFile` ProgID. Windows typically clears
+  the UserChoice automatically when the ProgID disappears. If needed, the script shows
+  instructions to clear it manually.
+
+- **Classic Python**: removes the ProgID and resets the HKLM ftype to the plain Python
+  launcher. A UAC prompt appears automatically if admin rights are needed.
+
+A backup of the current registry state is saved automatically before any change.
 
 ---
 
@@ -84,13 +63,12 @@ plain `py.exe "%1" %*`. Backs up the current state before any change.
 
 The MSIX Python Manager (`PythonSoftwareFoundation.PythonManager`) uses Windows App Model
 activation for `.py`/`.pyw` double-clicks, which bypasses all `ftype`/`shell\open\command`
-registry changes. Despite this, ByDefaultActivation works via `register.py`:
+registry changes. ByDefaultActivation works via UserChoice:
 
-| Script | Works with MSIX? | Mechanism |
+| Method | Works with MSIX? | Mechanism |
 |---|---|---|
-| `register.py` | **Yes** ✓ | HKCU `pyexewrap.PyFile` ProgID (read by pymanager launcher) |
-| `activate.py` AppX layer | **No** ✗ | AppX `shell\open\command` (bypassed by App Model) |
-| `activate.py` HKLM layer | **Yes, without MSIX** | Classic registry ftype |
+| `activate.py` (MSIX path) | **Yes** ✓ | `pyexewrap.PyFile` ProgID + UserChoice set via UI |
+| `activate.py` (classic path) | **Yes, without MSIX** | HKLM ftype registry |
 
 See [MSIX_COMPATIBILITY.md](../../MSIX_COMPATIBILITY.md) for the full compatibility matrix.
 
@@ -99,5 +77,4 @@ See [MSIX_COMPATIBILITY.md](../../MSIX_COMPATIBILITY.md) for the full compatibil
 ## Deprecated
 
 The previous batch scripts (`.bat`) and registry files (`.reg`) are kept in
-[`deprecated/`](deprecated/) for reference only. They are superseded by the
-Python scripts above, which use `winpyfiles` and auto-backup before any change.
+[`deprecated/`](deprecated/) for reference only.

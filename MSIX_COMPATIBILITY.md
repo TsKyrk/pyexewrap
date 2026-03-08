@@ -27,9 +27,8 @@ Two components are essential:
 | Invocation method | Works with MSIX? | Works without MSIX? |
 |---|---|---|
 | Shebang `#!/usr/bin/env python -m pyexewrap` | **Yes** ✓ | **Yes** ✓ |
-| `register.py` → `pyexewrap.PyFile` ProgID | **Yes** ✓ | **Yes** ✓ |
-| `activate.py` AppX HKCU layer | **No** ✗ | N/A |
-| `activate.py` HKLM ftype layer (`--elevate`) | **No** ✗ | **Yes** ✓ |
+| `activate.py` → `pyexewrap.PyFile` ProgID + UserChoice | **Yes** ✓ | **Yes** ✓ |
+| `activate.py` HKLM ftype layer | **No** ✗ | **Yes** ✓ |
 
 ## The MSIX Python Manager
 
@@ -56,41 +55,42 @@ When this package is installed, Windows bypasses the registry ftype entirely and
 MSIX application declared in the manifest — the pymanager launcher (`py.exe`). This launcher:
 
 - **Reads shebang lines** → the shebang approach works correctly with MSIX.
-- **For files without shebangs** → consults `HKCU\Software\Classes\.py\OpenWithProgids` and
-  finds `pyexewrap.PyFile` if `register.py` was run → invokes pyexewrap via that ProgID.
+- **Honors UserChoice** → if UserChoice is set to `pyexewrap.PyFile`, the launcher invokes
+  pyexewrap for files without a shebang line.
 
 ### What is bypassed by MSIX
 
-All changes to `shell\open\command` registry keys (made by `winpyfiles set-command`,
-`activate.py`'s AppX layer, or `py -m winpyfiles reset`) have **no effect** on double-click
-behavior while the MSIX package is installed. The App Model reads `appxmanifest.xml` directly.
+All changes to `shell\open\command` registry keys (made by `winpyfiles set-command` or
+`activate.py`'s HKLM layer) have **no effect** on double-click behavior while the MSIX
+package is installed. The App Model reads `appxmanifest.xml` directly.
 
 ### What is NOT bypassed
 
 `HKCU\Software\Classes\pyexewrap.PyFile\shell\open\command` is a standard HKCU ProgID key,
-not an AppX key. It is read by the pymanager launcher as part of its file handling logic, not
-by the App Model itself. This is why `register.py`'s approach works under MSIX.
+not an AppX key. It is read by the pymanager launcher as part of its file handling logic.
+UserChoice set via the Windows UI is also honored by the MSIX launcher.
+This is why `activate.py`'s ProgID + UserChoice approach works under MSIX.
 
 ## How to switch ByDefaultActivation on and off
 
 ### Enable (all .py files wrapped, with or without shebang)
 
 ```
-py tools/ByDefaultActivation/register.py          # required: registers pyexewrap.PyFile
-py tools/ByDefaultActivation/activate.py           # optional: also patches AppX/HKLM layers
-py tools/ByDefaultActivation/activate.py --elevate # with HKLM update (non-MSIX systems)
+py tools/ByDefaultActivation/activate.py
 ```
+
+On MSIX systems, `activate.py` registers the `pyexewrap.PyFile` ProgID and then prompts you
+to set it as the default via Windows Settings (UserChoice). On classic systems, it also
+updates the HKLM ftype automatically (UAC prompt appears if needed).
 
 ### Disable (back to plain Python on double-click)
 
 ```
-py tools/ByDefaultActivation/reset.py              # removes AppX/HKLM overrides
-py tools/ByDefaultActivation/reset.py --elevate    # with HKLM reset
+py tools/ByDefaultActivation/disable.py
 ```
 
-> **Note:** `reset.py` does not remove the `pyexewrap.PyFile` ProgID from `register.py`.
-> On MSIX systems, the pymanager launcher will continue to use pyexewrap for no-shebang scripts
-> until that ProgID is removed manually (see `tools/ByDefaultActivation/README.md`).
+Removes the `pyexewrap.PyFile` ProgID and resets the HKLM ftype on classic systems.
+On MSIX, shows instructions if UserChoice needs to be cleared manually.
 
 ### Diagnose current state
 
@@ -116,7 +116,7 @@ This means:
 
 **Impact on pyexewrap:**
 - **Shebang approach**: continues to work — the MSIX launcher reads shebangs.
-- **ByDefaultActivation via `register.py`**: continues to work — the pymanager launcher reads
-  the `pyexewrap.PyFile` HKCU ProgID.
+- **ByDefaultActivation via `activate.py` (MSIX path)**: continues to work — the pymanager
+  launcher honors UserChoice and reads the `pyexewrap.PyFile` HKCU ProgID.
 - **ByDefaultActivation via `activate.py` HKLM layer**: stops working when the classic
   Setup.exe disappears, as there will be no `Python.File` HKLM ftype to patch.
