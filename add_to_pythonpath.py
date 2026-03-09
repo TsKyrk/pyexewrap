@@ -1,42 +1,38 @@
 """
 Adds the root of this repository to the system-wide PYTHONPATH environment variable,
-so you can `import pyexewrap` from anywhere without installing the package.
+and drops a pyexewrap.pth file in the system Python's site-packages directory.
 
 Usage: double-click this file, or run it from any terminal:
     python add_to_pythonpath.py
 
-How it works:
-    Writes directly to the Windows registry
-    (HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment)
-    and broadcasts WM_SETTINGCHANGE so the change takes effect in new terminals
-    without requiring a reboot.
+Why two mechanisms?
 
-Alternatively, you can add the path manually:
+  1. PYTHONPATH (registry, HKLM):
+       Works for interactive terminals (cmd, PowerShell, VS Code).
+       Broadcasts WM_SETTINGCHANGE so the change takes effect in new terminals
+       without requiring a reboot.
 
-  - Windows GUI (recommended):
-      Desktop > Properties > Advanced settings > Environment variables...
-      Add the path to the repo root in the "PYTHONPATH" system variable.
-
-  - PowerShell (run as admin):
-      $pyexewrap_path = "C:\\your\\path\\here\\pyexewrap"
-      [Environment]::SetEnvironmentVariable("PYTHONPATH",
-          [Environment]::GetEnvironmentVariable("PYTHONPATH") + ";$pyexewrap_path",
-          "Machine")
-
-  - cmd (run as admin):
-      setx /M PYTHONPATH "%PYTHONPATH%;C:\\your\\path\\here\\pyexewrap"
+  2. pyexewrap.pth in site-packages:
+       Processed by Python's `site` module at interpreter startup, before any
+       environment variable is read. This is the only mechanism that works when
+       Python is launched by the MSIX App Model (e.g. double-click via the
+       PythonSoftwareFoundation.PythonManager Store package), which activates
+       processes in an isolated environment that does NOT inherit PYTHONPATH.
+       Without this file, the shebang approach (#!/usr/bin/env python -m pyexewrap)
+       fails silently under MSIX double-click even though it works in a terminal.
 
 Note: why not `pip install -e .` ?
     pyexewrap is invoked by py.exe via a shebang line. py.exe uses the system Python,
     not a virtual environment. An editable install inside a venv would therefore not
     be visible to py.exe when launching scripts from the file explorer.
-    The PYTHONPATH approach is system-wide and works regardless of the active environment.
 """
 
 import os
+import subprocess
 import sys
 import winreg
 import ctypes
+from pathlib import Path
 
 
 def _ensure_admin() -> None:
@@ -53,9 +49,11 @@ def _ensure_admin() -> None:
         sys.exit()
 
 
-def add_to_pythonpath(path: str) -> None:
-    """Adds 'path' to the system-wide PYTHONPATH environment variable."""
+def add_to_pythonpath(path: str) -> bool:
+    """Add 'path' to the system-wide PYTHONPATH environment variable.
 
+    Returns True if a change was made, False if already configured.
+    """
     reg_key = winreg.OpenKey(
         winreg.HKEY_LOCAL_MACHINE,
         R"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
@@ -71,10 +69,8 @@ def add_to_pythonpath(path: str) -> None:
     existing_paths = set(p.strip("\\").lower() for p in current_value.split(";") if p)
 
     if path.strip("\\").lower() in existing_paths:
-        print(f"'{path}' is already in PYTHONPATH. No changes made.")
         winreg.CloseKey(reg_key)
-        input("Press a key...")
-        return
+        return False
 
     new_value = f"{current_value};{path}" if current_value else path
     winreg.SetValueEx(reg_key, "PYTHONPATH", 0, winreg.REG_EXPAND_SZ, new_value)
@@ -87,12 +83,49 @@ def add_to_pythonpath(path: str) -> None:
         HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment", 2, 5000, None
     )
 
-    print("PYTHONPATH updated successfully.")
-    print(f"New value: {new_value}")
-    input("Press a key...")
+    print(f"PYTHONPATH updated: {new_value}")
+    return True
+
+
+def add_pth_file(repo_root: str) -> bool:
+    """Drop a pyexewrap.pth file in the system Python's site-packages.
+
+    .pth files are processed by Python's site module at interpreter startup,
+    before any environment variable lookup. This makes pyexewrap importable
+    even when PYTHONPATH is not inherited (e.g. MSIX App Model activation).
+
+    Returns True if a change was made, False if already configured.
+    Prints a warning and returns False if py.exe is not found.
+    """
+    result = subprocess.run(
+        ["py", "-c", "import site; print(site.getsitepackages()[0])"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        print("[!] Could not determine site-packages location via py.exe.")
+        print("    The .pth file was NOT created. The shebang approach may be")
+        print("    unreliable under MSIX. Run this script again after installing py.exe.")
+        return False
+
+    site_packages = Path(result.stdout.strip())
+    pth_file = site_packages / "pyexewrap.pth"
+
+    if pth_file.exists() and pth_file.read_text(encoding="utf-8").strip() == repo_root.strip():
+        return False
+
+    pth_file.write_text(repo_root, encoding="utf-8")
+    print(f"Created {pth_file}")
+    return True
 
 
 if __name__ == "__main__":
     _ensure_admin()
     parent_dir = os.path.dirname(os.path.abspath(__file__))
-    add_to_pythonpath(parent_dir)
+    pythonpath_done = add_to_pythonpath(parent_dir)
+    pth_done = add_pth_file(parent_dir)
+    if not pythonpath_done and not pth_done:
+        print("Already configured. Nothing to do.")
+    else:
+        print("pyexewrap is now findable in all Python execution contexts (including MSIX).")
+    input("Press a key...")

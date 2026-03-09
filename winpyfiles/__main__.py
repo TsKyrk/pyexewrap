@@ -1,9 +1,25 @@
 """CLI entry point: python -m winpyfiles [command]"""
+import subprocess
 import sys
 
 from ._assoc import diagnose, find_py_exe, find_msix_python_package, set_command
 from ._backup import backup, restore
 from ._elevation import is_admin, elevate_and_rerun
+
+
+def _check_pth_file() -> bool:
+    """Return True if pyexewrap.pth is present in py.exe's site-packages."""
+    try:
+        result = subprocess.run(
+            ["py", "-c", "import site; print(site.getsitepackages()[0])"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return False
+        import pathlib
+        return (pathlib.Path(result.stdout.strip()) / "pyexewrap.pth").exists()
+    except Exception:
+        return False
 
 
 def _interpret_command(command):
@@ -78,6 +94,7 @@ Windows reads settings from registry locations, in priority order:
         if ext.user_choice == _PYEXEWRAP_PROG_ID
     }
     _bda_active = bool(_bda_user_choices)
+    _pth_reliable = _check_pth_file()
 
     print("--- MSIX AppX Handlers (Windows 10/11) ---\n")
     if d.msix_package:
@@ -90,19 +107,21 @@ Windows reads settings from registry locations, in priority order:
         print()
         print("  Compatibility with pyexewrap:")
         print()
-        print("    [OK] Shebang approach (#!/usr/bin/env python -m pyexewrap): works correctly.")
-        print("         The MSIX launcher reads shebang lines and invokes pyexewrap as expected.")
-        print()
         print("    [!!] activate.py AppX/HKLM registry layers: do NOT work.")
         print("         The App Model reads AppxManifest.xml directly, bypassing all registry")
         print("         ftype/assoc/shell\\open\\command changes.")
         print()
+        print("    [!!] Shebang approach (#!/usr/bin/env python -m pyexewrap): does NOT work.")
+        print("         The Python Manager invokes python.exe directly -- py.exe is never called,")
+        print("         the shebang line is treated as a Python comment, pyexewrap is never invoked.")
+        print()
         if _bda_active:
             print("    [OK] ByDefaultActivation via activate.py + UserChoice: active.")
-            print("         UserChoice is set to pyexewrap.PyFile -- scripts without a shebang")
-            print("         will be wrapped by pyexewrap on double-click.")
+            print("         UserChoice is set to pyexewrap.PyFile -- all .py/.pyw files")
+            print("         will be wrapped by pyexewrap on double-click (with or without shebang).")
         else:
-            print("    [i]  ByDefaultActivation for scripts without a shebang: currently inactive.")
+            print("    [!!] ByDefaultActivation: inactive -- pyexewrap is NOT invoked on double-click.")
+            print("         The shebang approach does not work under MSIX (see above).")
             print("         To enable: run 'py tools/ByDefaultActivation/activate.py'")
             print("         and follow the on-screen instructions to set UserChoice via Windows.")
         print()
@@ -137,18 +156,25 @@ Windows reads settings from registry locations, in priority order:
         if not cmd:
             warnings.append(f"{ext.extension}: ProgID '{effective_pid}' has no command")
 
+    if _pth_reliable:
+        print("  pyexewrap.pth : [OK] found in site-packages -- importable in all contexts (incl. MSIX)")
+    else:
+        print("  pyexewrap.pth : [?]  not found -- shebang unreliable under MSIX double-click")
+        print("                       Fix: re-run add_to_pythonpath.py")
+
     if d.msix_handlers:
+        shebang_status = "reliable (pyexewrap.pth present)" if _pth_reliable else "UNRELIABLE (pyexewrap.pth missing -- re-run add_to_pythonpath.py)"
         if _bda_active:
             warnings.insert(0,
                 "MSIX Python Manager is active -- activate.py registry layers have NO EFFECT. "
-                "ByDefaultActivation via activate.py + UserChoice is active. "
-                "Shebang approach works correctly. See 'MSIX AppX Handlers' section above."
+                f"ByDefaultActivation via activate.py + UserChoice is active. "
+                f"Shebang approach: {shebang_status}. See 'MSIX AppX Handlers' section above."
             )
         else:
             warnings.insert(0,
                 "MSIX Python Manager is active -- activate.py registry layers have NO EFFECT. "
                 "ByDefaultActivation is inactive (UserChoice not set to pyexewrap.PyFile). "
-                "Shebang approach works correctly. See 'MSIX AppX Handlers' section above."
+                f"Shebang approach: {shebang_status}. See 'MSIX AppX Handlers' section above."
             )
 
     if warnings:
