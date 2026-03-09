@@ -27,25 +27,25 @@ Two components are essential:
 | Invocation method | Works with MSIX? | Works without MSIX? |
 |---|---|---|
 | `activate.py` → ByDefaultActivation (UserChoice) | **Yes** ✓ | **Yes** ✓ |
-| Shebang `#!/usr/bin/env python -m pyexewrap` on double-click | **Unreliable** ⚠ | **Yes** ✓ |
+| Shebang `#!/usr/bin/env python -m pyexewrap` on double-click | **No** ✗ | **Yes** ✓ |
 | `activate.py` HKLM ftype layer | **No** ✗ | **Yes** ✓ |
 
-### Why the shebang approach is unreliable on MSIX double-click
+### Why the shebang approach does not work under MSIX
 
-The MSIX App Model activates `.py` files in an isolated environment that may not inherit
-the system PYTHONPATH. When the pymanager launcher reads `#!/usr/bin/env python -m pyexewrap`
-and runs `python -m pyexewrap script.py`, it may fail to find the `pyexewrap` module —
-even if `python -m pyexewrap` works correctly from a CLI terminal.
+The shebang requires `py.exe` to be in the chain: only `py.exe` reads shebang lines and
+re-invokes `python -m pyexewrap`. `python.exe` itself treats `#!` as a regular comment.
 
-The CLI works because interactive terminals inherit PYTHONPATH from the registry. App Model
-activation does not guarantee the same inheritance.
+Under MSIX, the Python Manager intercepts double-clicks via `appxmanifest.xml` and invokes
+`python.exe` **directly** on the script — `py.exe` is never called, the shebang is never
+read, and pyexewrap is never invoked. The script runs as plain Python.
 
-**Consequence:** `disable.py` removes pyexewrap from all double-clicks, including shebang
-scripts. On MSIX, there is no stable "selective" mode.
+This was confirmed by testing: adding `input("press enter")` to the script and double-clicking
+shows the script output with no pyexewrap output whatsoever, even with `pyexewrap_verbose = True`.
 
-**Recommendation:** on MSIX systems, use ByDefaultActivation (UserChoice) for all scripts.
-The shebang line `#!/usr/bin/env python -m pyexewrap` can be used as a fallback for CLI
-invocation but should not be relied upon for double-click on MSIX.
+> **Note on `.pth`:** `add_to_pythonpath.py` still installs a `pyexewrap.pth` file in
+> site-packages. This is a safety net for ByDefaultActivation (UserChoice), ensuring pyexewrap
+> remains findable even if PYTHONPATH is not propagated in the App Model activation context.
+> It does not help the shebang approach.
 
 ## The MSIX Python Manager
 
@@ -73,8 +73,8 @@ MSIX application declared in the manifest — the pymanager launcher (`py.exe`).
 
 - **Honors UserChoice** → if UserChoice is set to `pyexewrap.PyFile`, the launcher invokes
   pyexewrap for all `.py` files (the recommended approach).
-- **Reads shebang lines** → invokes the command specified in the shebang, but without
-  guaranteed PYTHONPATH propagation (unreliable for `python -m pyexewrap`).
+- **Does NOT read shebang lines for module invocation** → invokes `python.exe` directly on
+  the script. The `#!` line is treated as a Python comment. pyexewrap is never invoked.
 
 ### What is bypassed by MSIX
 
@@ -109,8 +109,10 @@ py tools/ByDefaultActivation/disable.py
 Removes the `pyexewrap.PyFile` ProgID and resets the HKLM ftype on classic systems.
 On MSIX, shows instructions if UserChoice needs to be cleared manually.
 
-> **Note (MSIX):** after `disable.py`, the shebang approach is also unreliable on double-click
-> due to PYTHONPATH propagation issues. Re-enable via `activate.py` to restore full wrapping.
+> **Note (MSIX):** after `disable.py`, pyexewrap is not invoked on any double-click.
+> The shebang approach does not work under MSIX regardless of `.pth` or PYTHONPATH —
+> the Python Manager bypasses py.exe entirely. Re-enable via `activate.py` (UserChoice)
+> to restore wrapping.
 
 ### Diagnose current state
 
@@ -139,4 +141,5 @@ This means:
   launcher honors UserChoice and reads the `pyexewrap.PyFile` HKCU ProgID.
 - **ByDefaultActivation via `activate.py` HKLM layer**: stops working when the classic
   Setup.exe disappears, as there will be no `Python.File` HKLM ftype to patch.
-- **Shebang approach on double-click**: unreliable on MSIX due to PYTHONPATH propagation.
+- **Shebang approach on double-click**: does **not** work under MSIX — the Python Manager
+  invokes `python.exe` directly, bypassing `py.exe` and the shebang entirely.
